@@ -1,7 +1,4 @@
 const mysql = require('mysql');  //调用MySQL模块
-const http = require('http');
-const https = require('https');
-const querystring = require('querystring');
 const superagent = require('superagent');
 const cheerio = require('cheerio');
 const hdu_mysql_module = require('./vjudge_mysql');
