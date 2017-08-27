@@ -1,0 +1,27 @@
+{
+  "mysql":{
+    "host": "127.0.0.1",
+    "user": "root",
+    "password": "root",
+    "port": "3306",
+    "database": "jol"
+  },
+  "login":{
+    "hdu":{
+      "username":"your username should enter here",
+      "userpass":"your password should enter here"
+    }
+  },
+  "browser":{
+    "User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+  },
+  "url":{
+    "hdu": {
+      "url": "http://acm.hdu.edu.cn",
+      "login_url": "http://acm.hdu.edu.cn/userloginex.php?action=login",
+      "runner_url": "http://acm.hdu.edu.cn/status.php?last=",
+      "post_url": "http://acm.hdu.edu.cn/submit.php?action=submit"
+    }
+  }
+}
