@@ -6,6 +6,7 @@ const superagent = require('superagent');
 const cheerio = require('cheerio');
 const hdu_mysql_module = require('./vjudge_mysql');
 const log = console.log;
+let hdu_mysql;
 const problem_status = {
     "Pending": 0,
     "Queuing": 0,
@@ -20,7 +21,7 @@ const problem_status = {
     "Compilation Error": 11
 };
 module.exports = function (config) {
-    const hdu_mysql = new hdu_mysql_module(config);
+    hdu_mysql = new hdu_mysql_module(config);
     const url = config['url']['hdu'];
     const sleep = function (ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -80,7 +81,8 @@ module.exports = function (config) {
                     if(status===4)
                     {
                         hdu_mysql.query("select accepted from vjudge_problem where problem_id=?",[pid],function(rows){
-                           hdu_mysql.update("update vjudge_problem set accepted=? where problem_id=?",[parseInt(rows[0])+1,pid]);
+                           let accpeted=parseInt(rows[0]['accepted'])+1;
+                           hdu_mysql.query("update vjudge_problem set accepted=? where problem_id=?",[accpeted,pid]);
                         });
                     }
                 }
