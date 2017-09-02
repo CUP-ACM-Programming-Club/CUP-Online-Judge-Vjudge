@@ -2,9 +2,9 @@
   "name": "vjudge",
   "version": "1.0.0",
   "description": "HUSTOJ vjudge module",
-  "main": "vjudge.js",
+  "main": "daemon.js",
   "scripts": {
-    "start": "node vjudge.js"
+    "start": "node daemon.js"
   },
   "dependencies": {
     "mysql": "~2.14.1",

@@ -10,6 +10,10 @@
     "hdu":{
       "username":"your username should enter here",
       "userpass":"your password should enter here"
+    },
+    "poj":{
+      "user_id1":"your username should enter here",
+      "password1":"your password should enter here"
     }
   },
   "browser":{
@@ -22,6 +26,11 @@
       "login_url": "http://acm.hdu.edu.cn/userloginex.php?action=login",
       "runner_url": "http://acm.hdu.edu.cn/status.php?last=",
       "post_url": "http://acm.hdu.edu.cn/submit.php?action=submit"
+    },
+    "poj":{
+      "url":"http://poj.org",
+      "login_url":"http://poj.org/login",
+      "post_url":"http://poj.org/submit"
     }
   }
 }

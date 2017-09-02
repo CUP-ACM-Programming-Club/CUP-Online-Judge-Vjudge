@@ -1,7 +1,7 @@
-const mysql = require('mysql');  //调用MySQL模块
 const superagent = require('superagent');
 const cheerio = require('cheerio');
-const hdu_mysql_module = require('./vjudge_mysql');
+const mysql_module = require('./include/mysql_module');
+const sleep = require('./include/functional').sleep;
 const log = console.log;
 let hdu_mysql;
 const problem_status = {
@@ -18,79 +18,55 @@ const problem_status = {
     "Compilation Error": 11
 };
 module.exports = function (config) {
-    hdu_mysql = new hdu_mysql_module(config);
+    hdu_mysql = new mysql_module(config);
     const url = config['url']['hdu'];
-    const sleep = function (ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    };
-
     let running = false;
 
     const loop_function = async function () {
         if (running) return;
-        const connection = mysql.createConnection(config['mysql']);
-        connection.connect(function (err) {
-            if (err) {
-                console.log('[query] - :' + err);
-                return;
-            }
-            console.log('[connection connect]  succeed!');
-        });
-        connection.query("select * from (select * from vjudge_solution where runner_id='0')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (err, rows, fields) {
-            if (err) {
-                console.log('[query] - :' + err);
-                return;
-            }
+        hdu_mysql.query("select * from (select * from vjudge_solution where runner_id='0')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
             console.log(rows.length);
             running = true;
             if (rows.length > 0) {
                 console.log("queue has element.Running.");
-                await native_submit(rows[0]['problem_id'], rows[0]['language_id'], rows[0]['source'], rows[0]['solution_id']);
+                await login(rows[0]['problem_id'], rows[0]['language_id'], rows[0]['source'], rows[0]['solution_id']);
             }
             else {
                 running = false;
             }
-            console.log("Complete submit process");
-        });
-        connection.end(function (err) {
-            if (err) {
-                return;
-            }
-            console.log('[connection end] succeed!');
         });
     };
-    const new_update = async function (pid, sid, cookie) {
-        superagent.get("http://acm.hdu.edu.cn/status.php?first=&pid=" + pid + "&user=cupvjudge&lang=0&status=0").set("Cookie", cookie).set(config['browser']).end(async function (err, response) {
-                let $ = cheerio.load(response.text);
-                let tr = $(".table_text").find('tr').eq(1).find('td');
-                let runner_id = tr.eq(0).text();
-                let status = tr.eq(2).text();
-                let time = tr.eq(4).text();
+    const updateStatus = async function (pid, sid, cookie) {
+        superagent.get("http://acm.hdu.edu.cn/status.php?first=&pid=" + pid + "&user=" + config['login']['hdu']['username'] + "&lang=0&status=0").set("Cookie", cookie).set(config['browser']).end(async function (err, response) {
+                const $ = cheerio.load(response.text);
+                const result = $(".table_text").find('tr').eq(1).find('td');
+                const runner_id = result.eq(0).text();
+                let status = result.eq(2).text();
+                let time = result.eq(4).text();
                 time = time.substr(0, time.length - 2);
-                let memory = tr.eq(5).text();
+                let memory = result.eq(5).text();
                 memory = memory.substr(0, memory.length - 1);
                 if (status.substr(0, 13) === "Runtime Error") status = 10;
                 else status = problem_status[status];
                 sqlArr = [runner_id, status, time, memory, sid];
-                hdu_mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?",sqlArr);
+                hdu_mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
                 if (status > 3) {
                     running = false;
-                    if(status===4)
-                    {
-                        hdu_mysql.query("select accepted from vjudge_problem where problem_id=?",[pid],function(rows){
-                           let accpeted=parseInt(rows[0]['accepted'])+1;
-                           hdu_mysql.query("update vjudge_problem set accepted=? where problem_id=?",[accpeted,pid]);
+                    if (status === 4) {
+                        hdu_mysql.query("select accepted from vjudge_problem where problem_id=?", [pid], function (rows) {
+                            let accpeted = parseInt(rows[0]['accepted']) + 1;
+                            hdu_mysql.query("update vjudge_problem set accepted=? where problem_id=?", [accpeted, pid]);
                         });
                     }
                 }
                 else {
-                    await sleep(2000);
-                    new_update(pid, sid, cookie);
+                    await sleep(500);
+                    updateStatus(pid, sid, cookie);
                 }
             }
         )
     };
-    const post_submit = async function (pid, lang, code, sid, cookie) {
+    const submitAnswer = async function (pid, lang, code, sid, cookie) {
         let postmsg = {
             check: "0",
             problemid: pid,
@@ -100,14 +76,14 @@ module.exports = function (config) {
         superagent.post(url.post_url).set("Cookie", cookie).set(config['browser']).send(postmsg).end(async function (err, response) {
             await sleep(2000);
             log("submit finished.sleep 2000ms");
-            new_update(pid, sid, cookie);
+            updateStatus(pid, sid, cookie);
         })
     };
 
-    const native_submit = function (pid, lang, code, sid) {
+    const login = function (pid, lang, code, sid) {
         superagent.post(url.login_url).set(config['browser']).send(config['login']['hdu']).end(function (err, response) {
             let cookie = response.headers["set-cookie"];
-            post_submit(pid, lang, code, sid, cookie);
+            submitAnswer(pid, lang, code, sid, cookie);
         })
     };
 
