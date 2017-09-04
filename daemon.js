@@ -3,5 +3,5 @@ const VirtualJudge = require('./module/hdujudger');
 const submitAnalyse = require('./module/submitAnalyse');
 const hdu_judger = new VirtualJudge(config);
 const analyse = new submitAnalyse(config);
-hdu_judger.start();
+hdu_judger.start(config['proxy']);
 analyse.start();

@@ -6,6 +6,7 @@
     "port": "3306",
     "database": "jol"
   },
+  "proxy":"none",
   "login":{
     "hdu":{
       "username":"your username should enter here",
