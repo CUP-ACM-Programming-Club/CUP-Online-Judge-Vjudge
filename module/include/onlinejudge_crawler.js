@@ -1,6 +1,7 @@
 const superagent = require('superagent');
 require('superagent-proxy')(superagent);
 const cheerio = require('cheerio');
+const querystring = require('querystring');
 const mysql_module = require('./mysql_module');
 const functional_module = require('./functional');
 const functional = new functional_module();
@@ -130,12 +131,61 @@ module.exports = function (accountArr, config) {
         else
             superagent.get("https://cn.vjudge.net/user/solveDetail/" + account).set(config['browser']).end(vjudgeAction);
     };
+
+    const hustoj_upcAction = async function (err, response) {
+        const $ = cheerio.load(response.text);
+        let plaintext = $("table").find('script').eq(0).html();
+        plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
+        for (i in plaintext) {
+            plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
+        }
+        save_to_database('HUSTOJ_UPC', plaintext);
+    };
+
+
+    const hustoj_upc_crawler = (account) => {
+        //  console.log(account);
+        if (proxy.length > 4)
+            superagent.get("http://exam.upc.edu.cn/userinfo.php?user=" + account).set(config['browser']).proxy(proxy).end(hustoj_upcAction);
+        else
+            superagent.get("http://exam.upc.edu.cn/userinfo.php?user=" + account).set(config['browser']).end(hustoj_upcAction);
+    };
+
+    const upcvjAction = function (err, response) {
+        let json = JSON.parse(response.text)['data'];
+        let hdu = [];
+        let hducnt = 0;
+        let poj = [];
+        let pojcnt = 0;
+        for (i in json) {
+            if (json[i][11] === 'HDU')
+                hdu[hducnt++] = json[i][12];
+            else if (json[i][11] === 'POJ')
+                poj[pojcnt++] = json[i][12];
+        }
+        save_to_database('HDU',hdu);
+        save_to_database('POJ',poj);
+    };
+
+    const upcvj = (account) => {
+        const postData = {
+            un: account
+        };
+        const vjurl = "http://exam.upc.edu.cn:8080/vjudge/problem/fetchStatus.action?draw=2&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=false&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=false&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=false&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=false&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=false&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=false&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=7&columns%5B7%5D%5Bname%5D=&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=false&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=8&columns%5B8%5D%5Bname%5D=&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=false&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=9&columns%5B9%5D%5Bname%5D=&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=false&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B10%5D%5Bdata%5D=10&columns%5B10%5D%5Bname%5D=&columns%5B10%5D%5Bsearchable%5D=true&columns%5B10%5D%5Borderable%5D=false&columns%5B10%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B10%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B11%5D%5Bdata%5D=11&columns%5B11%5D%5Bname%5D=&columns%5B11%5D%5Bsearchable%5D=true&columns%5B11%5D%5Borderable%5D=false&columns%5B11%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B11%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=0&order%5B0%5D%5Bdir%5D=desc&start=0&length=1000&search%5Bvalue%5D=&search%5Bregex%5D=false&" + querystring.stringify(postData) + "&OJId=All&probNum=&res=1&language=&orderBy=run_id";
+        if (proxy.length > 4)
+            superagent.get(vjurl).proxy(proxy).set(config['browser']).end(upcvjAction);
+        else
+            superagent.get(vjurl).set(config['browser']).end(upcvjAction);
+    };
+
     const crawler_match = {
         "hdu": hdu_crawler,
         "poj": poj_crawler,
         "codeforces": codeforces_crawler,
         "uva": uva_crawler,
-        "vjudge": vjudge_crawler
+        "vjudge": vjudge_crawler,
+        "hustoj-upc": hustoj_upc_crawler,
+        "upcvj": upcvj
     };
     const crawler = () => {
         for (const value in accountArr) {
