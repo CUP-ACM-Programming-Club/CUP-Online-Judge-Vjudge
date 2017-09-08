@@ -114,7 +114,7 @@ class Judger {
 module.exports = function (config) {
     hdu_mysql = new mysql_module(config);
     const loop_function = async function () {
-        hdu_mysql.query("select * from (select * from vjudge_solution where runner_id='0')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
+        hdu_mysql.query("select * from (select * from vjudge_solution where runner_id='0' and result='0')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
             console.log(rows.length);
             if (rows.length > 0) {
                 console.log("queue has "+rows.length+" element.Running.");
@@ -125,7 +125,9 @@ module.exports = function (config) {
                         language: rows[i]['language_id'],
                         code: rows[i]['source']
                     };
-                    const judger = new Judger(config, account.shift(), proxy);
+                    const cur_account=account.shift();
+                    hdu_mysql.query("update vjudge_solution set result=?,judger=? where solution_id=?", [14,cur_account['username'],rows[i]['solution_id']]);
+                    const judger = new Judger(config, cur_account, proxy);
                     judger.run(solution);
                 }
             }
