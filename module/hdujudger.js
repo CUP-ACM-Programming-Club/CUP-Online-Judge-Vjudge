@@ -35,7 +35,7 @@ class Judger {
 
     record(rows){
         let accpeted = parseInt(rows[0]['accepted']) + 1;
-        hdu_mysql.query("update vjudge_problem set accepted=? where problem_id=?", [accpeted, this.pid]);
+        hdu_mysql.query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid,"HDU"]);
     }
 
     async connect(err, response) {
@@ -56,7 +56,7 @@ class Judger {
         if (status > 3) {
             account.push(this.account);
             if (status === 4) {
-                hdu_mysql.query("select accepted from vjudge_problem where problem_id=?", [this.pid], (rows)=>{this.record(rows)});
+                hdu_mysql.query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid,"HDU"], (rows)=>{this.record(rows)});
             }
         }
         else {
@@ -73,7 +73,7 @@ class Judger {
     };
 
     async submitAction() {
-        await sleep(2000);
+        await sleep(500);
         log("pid:"+this.pid+" come to update");
         this.updateStatus(this.pid, this.cookie);
     };
@@ -114,7 +114,7 @@ class Judger {
 module.exports = function (config) {
     hdu_mysql = new mysql_module(config);
     const loop_function = async function () {
-        hdu_mysql.query("select * from (select * from vjudge_solution where runner_id='0' and result='0')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
+        hdu_mysql.query("select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='HDU' )solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
             console.log(rows.length);
             if (rows.length > 0) {
                 console.log("queue has "+rows.length+" element.Running.");
@@ -122,7 +122,7 @@ module.exports = function (config) {
                     const solution = {
                         sid: rows[i]['solution_id'],
                         pid: rows[i]['problem_id'],
-                        language: rows[i]['language_id'],
+                        language: rows[i]['language'],
                         code: rows[i]['source']
                     };
                     const cur_account=account.shift();

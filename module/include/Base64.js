@@ -1,5 +1,5 @@
 module.exports = function () {
-    {
+
         // private property
         this._keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
         // public method for encoding
@@ -110,5 +110,4 @@ module.exports = function () {
             }
             return string;
         }
-    }
 };
