@@ -81,16 +81,35 @@ module.exports = function (accountArr, config) {
         else
             superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=1000").set(config['browser']).end(codeforcesAction);
     };
+
+    const uvaAction = async function(err,response){
+        const json=JSON.parse(response.text)["subs"];
+        let arr=[];
+        for(i in json)
+        {
+            if(90===parseInt(json[i][2]))
+            {
+                let problem_id=json[i][1];
+                arr.push(problem_id);
+            }
+        }
+        save_to_database('UVa',arr);
+    };
+
+    const uva_convert_username_to_id=async function(err,response){
+        if (proxy.length > 4)
+            superagent.get("https://uhunt.onlinejudge.org/api/subs-user/" + response.text).set(config['browser']).proxy(proxy).end(uvaAction);
+        else
+            superagent.get("https://uhunt.onlinejudge.org/api/subs-user/" + response.text).set(config['browser']).end(uvaAction);
+
+    };
+
     const uva_crawler = (account) => {
-        /*
-        console.log(account);
-        superagent.post("https://uva.onlinejudge.org/index.php?option=com_comprofiler&task=login").set(config['browser']).send().end();
-        superagent.get("https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=8&page=show_authorstats&nick="+account).set(config['browser']).end(async function(err,response){
-            const $ = cheerio.load(response.text);
-            let table = $('table');
-            console.log($.html());
-        })
-        */
+        if (proxy.length > 4)
+            superagent.get("https://uhunt.onlinejudge.org/api/uname2uid/" + account).set(config['browser']).proxy(proxy).end(uva_convert_username_to_id);
+        else
+            superagent.get("https://uhunt.onlinejudge.org/api/uname2uid/" + account).set(config['browser']).end(uva_convert_username_to_id);
+
     };
 
     const vjudgeAction = function (err, response) {
