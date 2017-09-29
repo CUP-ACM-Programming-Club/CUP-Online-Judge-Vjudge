@@ -21,20 +21,24 @@ module.exports = function (accountArr, config) {
             for (i in arr) {
                 if (arr[i].toString().length > 0 && (typeof list === 'undefined' || typeof list[arr[i]] === 'undefined')) {
                     await mysql.query("INSERT INTO vjudge_record(user_id,oj_name,problem_id,time)VALUES(?,?,?,NOW())", [accountArr['user_id'], oj_name, arr[i]]);
-                    await sleep(10).then(() => {
-                    });
+                    await sleep(10);
                 }
             }
         });
     };
 
     const hduAction = async function (err, response) {
-        const $ = cheerio.load(response.text);
-        let arr = $('table').find('table').eq(2).find('script').eq(0).html().split(';');
-        for (i in arr) {
-            arr[i] = arr[i].substring(arr[i].indexOf('(') + 1, arr[i].indexOf(','));
+        if (err || !response.ok) {
+            console.log("HDUAction:Some error occured in response.");
         }
-        save_to_database('HDU', arr);
+        else {
+            const $ = cheerio.load(response.text);
+            let arr = $('table').find('table').eq(2).find('script').eq(0).html().split(';');
+            for (i in arr) {
+                arr[i] = arr[i].substring(arr[i].indexOf('(') + 1, arr[i].indexOf(','));
+            }
+            save_to_database('HDU', arr);
+        }
     };
 
     const hdu_crawler = (account) => {
@@ -45,14 +49,19 @@ module.exports = function (accountArr, config) {
     };
 
     const pojAction = async function (err, response) {
-        const $ = cheerio.load(response.text);
-        let js = $("script");
-        js = js.eq(1).html();
-        js = js.substring(js.indexOf('}') + 1, js.length).split('\n');
-        for (i in js) {
-            js[i] = js[i].substring(js[i].indexOf('(') + 1, js[i].indexOf(')'));
+        if (err || !response.ok) {
+            console.log("POJAction:Some error occured in response.");
         }
-        save_to_database('POJ', js);
+        else {
+            const $ = cheerio.load(response.text);
+            let js = $("script");
+            js = js.eq(1).html();
+            js = js.substring(js.indexOf('}') + 1, js.length).split('\n');
+            for (i in js) {
+                js[i] = js[i].substring(js[i].indexOf('(') + 1, js[i].indexOf(')'));
+            }
+            save_to_database('POJ', js);
+        }
     };
 
     const poj_crawler = (account) => {
@@ -63,16 +72,21 @@ module.exports = function (accountArr, config) {
     };
 
     const codeforcesAction = async function (err, response) {
-        const json = JSON.parse(response.text)['result'];
-        let arr = [];
-        for (i in json) {
-            if (json[i]['verdict'] === 'OK') {
-                let problem_id = json[i]['problem'];
-                problem_id = problem_id['contestId'] + problem_id['index'];
-                arr.push(problem_id);
-            }
+        if (err || !response.ok) {
+            console.log("CodeForceAction:Some error occured in response.");
         }
-        save_to_database('CODEFORCES', arr);
+        else {
+            const json = JSON.parse(response.text)['result'];
+            let arr = [];
+            for (i in json) {
+                if (json[i]['verdict'] === 'OK') {
+                    let problem_id = json[i]['problem'];
+                    problem_id = problem_id['contestId'] + problem_id['index'];
+                    arr.push(problem_id);
+                }
+            }
+            save_to_database('CODEFORCES', arr);
+        }
     };
 
     const codeforces_crawler = (account) => {
@@ -82,25 +96,33 @@ module.exports = function (accountArr, config) {
             superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=1000").set(config['browser']).end(codeforcesAction);
     };
 
-    const uvaAction = async function(err,response){
-        const json=JSON.parse(response.text)["subs"];
-        let arr=[];
-        for(i in json)
-        {
-            if(90===parseInt(json[i][2]))
-            {
-                let problem_id=json[i][1];
-                arr.push(problem_id);
-            }
+    const uvaAction = async function (err, response) {
+        if (err || !response.ok) {
+            console.log("UVAAction:Some error occured in response.");
         }
-        save_to_database('UVa',arr);
+        else {
+            const json = JSON.parse(response.text)["subs"];
+            let arr = [];
+            for (i in json) {
+                if (90 === parseInt(json[i][2])) {
+                    let problem_id = json[i][1];
+                    arr.push(problem_id);
+                }
+            }
+            save_to_database('UVa', arr);
+        }
     };
 
-    const uva_convert_username_to_id=async function(err,response){
-        if (proxy.length > 4)
-            superagent.get("https://uhunt.onlinejudge.org/api/subs-user/" + response.text).set(config['browser']).proxy(proxy).end(uvaAction);
-        else
-            superagent.get("https://uhunt.onlinejudge.org/api/subs-user/" + response.text).set(config['browser']).end(uvaAction);
+    const uva_convert_username_to_id = async function (err, response) {
+        if (err || !response.ok) {
+            console.log("UVA_convert:Some error occured in response.");
+        }
+        else {
+            if (proxy.length > 4)
+                superagent.get("https://uhunt.onlinejudge.org/api/subs-user/" + response.text).set(config['browser']).proxy(proxy).end(uvaAction);
+            else
+                superagent.get("https://uhunt.onlinejudge.org/api/subs-user/" + response.text).set(config['browser']).end(uvaAction);
+        }
 
     };
 
@@ -113,35 +135,40 @@ module.exports = function (accountArr, config) {
     };
 
     const vjudgeAction = function (err, response) {
-        const json = (JSON.parse(response.text))['acRecords'];
-        const hdu = json['HDU'];
-        const poj = json['POJ'];
-        const codeforces = json['Gym'];
-        const uva = json['UVA'];
-        const uvalive = json['UVALive'];
-        const fzu = json['FZU'];
-        const aizu = json['Aizu'];
-        const csu = json['CSU'];
-        const hysbz = json['HYSBZ'];
-        const spoj = json['SPOJ'];
-        const uestc = json['UESTC'];
-        const ural = json['URAL'];
-        const zoj = json['ZOJ'];
-        const kattis = json['Kattis'];
-        save_to_database('HDU', hdu);
-        save_to_database('POJ', poj);
-        save_to_database('CODEFORCES', codeforces);
-        save_to_database('UVA', uva);
-        save_to_database('UVALive', uvalive);
-        save_to_database('FZU', fzu);
-        save_to_database('Aizu', aizu);
-        save_to_database('CSU', csu);
-        save_to_database('HYSBZ', hysbz);
-        save_to_database('SPOJ', spoj);
-        save_to_database('UESTC', uestc);
-        save_to_database('URAL', ural);
-        save_to_database('ZOJ', zoj);
-        save_to_database('Kattis', kattis);
+        if (err || !response.ok) {
+            console.log("VjudgeAction:Some error occured in response.");
+        }
+        else {
+            const json = (JSON.parse(response.text))['acRecords'];
+            const hdu = json['HDU'];
+            const poj = json['POJ'];
+            const codeforces = json['Gym'];
+            const uva = json['UVA'];
+            const uvalive = json['UVALive'];
+            const fzu = json['FZU'];
+            const aizu = json['Aizu'];
+            const csu = json['CSU'];
+            const hysbz = json['HYSBZ'];
+            const spoj = json['SPOJ'];
+            const uestc = json['UESTC'];
+            const ural = json['URAL'];
+            const zoj = json['ZOJ'];
+            const kattis = json['Kattis'];
+            save_to_database('HDU', hdu);
+            save_to_database('POJ', poj);
+            save_to_database('CODEFORCES', codeforces);
+            save_to_database('UVA', uva);
+            save_to_database('UVALive', uvalive);
+            save_to_database('FZU', fzu);
+            save_to_database('Aizu', aizu);
+            save_to_database('CSU', csu);
+            save_to_database('HYSBZ', hysbz);
+            save_to_database('SPOJ', spoj);
+            save_to_database('UESTC', uestc);
+            save_to_database('URAL', ural);
+            save_to_database('ZOJ', zoj);
+            save_to_database('Kattis', kattis);
+        }
     };
 
     const vjudge_crawler = (account) => {
@@ -152,13 +179,18 @@ module.exports = function (accountArr, config) {
     };
 
     const hustoj_upcAction = async function (err, response) {
-        const $ = cheerio.load(response.text);
-        let plaintext = $("table").find('script').eq(0).html();
-        plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
-        for (i in plaintext) {
-            plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
+        if (err || !response.ok) {
+            console.log("HUSTOJ_UPCAction:Some error occured in response.");
         }
-        save_to_database('HUSTOJ_UPC', plaintext);
+        else {
+            const $ = cheerio.load(response.text);
+            let plaintext = $("table").find('script').eq(0).html();
+            plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
+            for (i in plaintext) {
+                plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
+            }
+            save_to_database('HUSTOJ_UPC', plaintext);
+        }
     };
 
 
@@ -171,19 +203,24 @@ module.exports = function (accountArr, config) {
     };
 
     const upcvjAction = function (err, response) {
-        let json = JSON.parse(response.text)['data'];
-        let hdu = [];
-        let hducnt = 0;
-        let poj = [];
-        let pojcnt = 0;
-        for (i in json) {
-            if (json[i][11] === 'HDU')
-                hdu[hducnt++] = json[i][12];
-            else if (json[i][11] === 'POJ')
-                poj[pojcnt++] = json[i][12];
+        if (err || !response.ok) {
+            console.log("UPCVjudgeAction:Some error occured in response.");
         }
-        save_to_database('HDU',hdu);
-        save_to_database('POJ',poj);
+        else {
+            let json = JSON.parse(response.text)['data'];
+            let hdu = [];
+            let hducnt = 0;
+            let poj = [];
+            let pojcnt = 0;
+            for (i in json) {
+                if (json[i][11] === 'HDU')
+                    hdu[hducnt++] = json[i][12];
+                else if (json[i][11] === 'POJ')
+                    poj[pojcnt++] = json[i][12];
+            }
+            save_to_database('HDU', hdu);
+            save_to_database('POJ', poj);
+        }
     };
 
     const upcvj = (account) => {
@@ -214,5 +251,5 @@ module.exports = function (accountArr, config) {
     };
     this.run = () => {
         crawler();
-    }
+    };
 };

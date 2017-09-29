@@ -1,10 +1,10 @@
 const config = require('./config.json');
-const VirtualJudge = require('./module/hdujudger');
+const HDUVjudge = require('./module/vjudger');
+const POJVjudge = require('./module/pojjudger');
 const submitAnalyse = require('./module/submitAnalyse');
-const hdu_judger = new VirtualJudge(config);
+const hdu_judger = new HDUVjudge(config,"hdu");
+const poj_judger = new  POJVjudge(config,"poj");
 const analyse = new submitAnalyse(config);
-const VirtualJudge_POJ=require('./module/pojjudger');
-const poj_judger = new VirtualJudge_POJ(config);
 poj_judger.start(config['proxy']);
 hdu_judger.start(config['proxy']);
 analyse.start();
