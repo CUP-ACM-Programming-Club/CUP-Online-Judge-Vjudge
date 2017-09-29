@@ -30,6 +30,7 @@ class Judger {
 
     async connect(err, response) {
         const sqlArr = this.ojmodule.format(response,this.sid);
+		const status=sqlArr[1];
         mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
         if (status > 3) {
             account.push(this.account);
@@ -38,7 +39,7 @@ class Judger {
             }
         }
         else {
-            await sleep(500);
+            await sleep(2000);
             this.updateStatus(this.pid, this.sid, this.cookie);
         }
     };
@@ -51,7 +52,7 @@ class Judger {
     };
 
     async submitAction() {
-        await sleep(500);
+        await sleep(2000);
         log("pid:"+this.pid+" come to update");
         this.updateStatus(this.pid, this.cookie);
     };
@@ -101,7 +102,7 @@ module.exports = function (config,oj_name) {
                     };
                     const cur_account=account.shift();
                     mysql.query("update vjudge_solution set result=?,judger=? where solution_id=?", [14,ojmodule.formatAccount(cur_account),rows[i]['solution_id']]);
-                    const judger = new Judger(config, cur_account, proxy);
+                    const judger = new Judger(config, cur_account, proxy,oj_name);
                     judger.run(solution);
                 }
             }
