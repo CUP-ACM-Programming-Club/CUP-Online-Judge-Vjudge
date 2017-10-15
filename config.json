@@ -18,7 +18,14 @@
       "user_id1":"your username should enter here",
       "password1":"your password should enter here"
     }
-  ]
+  ],
+    "uva":[
+      {
+        "username":"your username should enter here",
+        "passwd":"your password should enter here",
+        "user_id":"your user_id should enter here"
+      }
+    ]
   },
   "browser":{
     "User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36",
@@ -35,6 +42,11 @@
       "url":"http://poj.org",
       "login_url":"http://poj.org/login",
       "post_url":"http://poj.org/submit"
+    },
+    "uva":{
+      "url":"https://uva.onlinejudge.org",
+      "login_url":"https://uva.onlinejudge.org/index.php?option=com_comprofiler&task=login",
+      "post_url":"https://uva.onlinejudge.org/index.php?option=com_onlinejudge&Itemid=25&page=save_submission"
     }
   }
 }

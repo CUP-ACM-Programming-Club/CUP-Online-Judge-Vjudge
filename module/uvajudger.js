@@ -29,11 +29,12 @@ class Judger {
     }
 
     async connect(err, response) {
+        console.log(response.text);
         const sqlArr = this.ojmodule.format(response,this.sid);
         mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
-        if (status > 3) {
+        if (sqlArr[1] > 3) {
             account.push(this.account);
-            if (status === 4) {
+            if (sqlArr[1] === 4) {
                 mysql.query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid,this.oj_name.toUpperCase()], (rows)=>{this.record(rows)});
             }
         }
@@ -50,13 +51,16 @@ class Judger {
             superagent.get(this.ojmodule.updateurl(pid,this.account)).set("Cookie", cookie).set(this.config['browser']).end((err,response)=>{this.connect(err,response)});
     };
 
-    async submitAction() {
+    async submitAction(err,response) {
+        const $ = cheerio.load(response.text);
+        console.log($.text());
         await sleep(500);
         log("pid:"+this.pid+" come to update");
         this.updateStatus(this.pid, this.cookie);
     };
 
     submitAnswer(pid, lang, code, cookie) {
+        console.log(cookie);
         const postmsg=this.ojmodule.post_format(pid,lang,code);
         if (proxy.length > 4)
             superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).send(postmsg).end((err,response)=>{this.submitAction(err,response)});
@@ -64,23 +68,63 @@ class Judger {
             superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).send(postmsg).end((err,response)=>{this.submitAction(err,response)});
     };
 
-    loginAction(err, response) {
-        this.submitAnswer(this.pid, this.language, this.code, response.headers["set-cookie"]);
+    loginAction(err, response,cookie) {
+        //console.log("login finished");
+       // console.log(response.headers);
+        //const $ = cheerio.load(response.text);
+       // console.log($.text());
+       // console.log(response);
+        this.submitAnswer(this.pid, this.language, this.code, cookie);
     };
 
-    login() {
+    login(cookie) {
         if (proxy.length > 4)
-            superagent.post(this.url.login_url).set(this.config['browser']).proxy(this.proxy).send(this.account).end((err,response)=>{this.loginAction(err,response)});
+            superagent.post(this.url.login_url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).send(this.account).end((err,response)=>{this.loginAction(err,response,cookie)});
         else
-            superagent.post(this.url.login_url).set(this.config['browser']).send(this.account).end((err,response)=>{this.loginAction(err,response)});
+            superagent.post(this.url.login_url).set("Cookie", cookie).set(this.config['browser']).send(this.account).end((err,response)=>{this.loginAction(err,response,cookie)});
     };
+
+
+    accessAction(err,response)
+    {
+        const $ = cheerio.load(response.text);
+        const hidden_elements=$("input[name=cbsecuritym3]");
+        this.account["op2"]="login";
+        this.account["lang"]="english";
+        this.account["force_session"]="1";
+        this.account["return"]="B:aHR0cDovL3V2YS5vbmxpbmVqdWRnZS5vcmcv";
+        this.account["message"]="0";
+        this.account["loginfrom"]="loginmodule";
+        this.account["cbsecuritym3"]=hidden_elements.eq(0).attr("value");
+        this.account["j1a423fa7ad12ba8910ee28b44f2175f3"]=1;
+        this.account['remember']="yes";
+        this.login(response.headers["set-cookie"]);
+    }
+
+    access(cookie){
+        if (proxy.length > 4)
+            superagent.get(this.url.url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).end((err,response)=>{this.accessAction(err,response)});
+        else
+            superagent.get(this.url.url).set("Cookie", cookie).set(this.config['browser']).end((err,response)=>{this.accessAction(err,response)});
+    }
+
+    cookieAction(err,response){
+        this.access(response.headers["set-cookie"]);
+    }
+
+    getCookie(){
+        if (proxy.length > 4)
+            superagent.get(this.url.url).set(this.config['browser']).proxy(this.proxy).end((err,response)=>{this.cookieAction(err,response)});
+        else
+            superagent.get(this.url.url).set(this.config['browser']).end((err,response)=>{this.cookieAction(err,response)});
+    }
 
     run(solution) {
-        this.pid = solution.pid;
-        this.sid = solution.sid;
-        this.code = solution.code;
-        this.language = solution.language;
-        this.login();
+       // this.pid = solution.pid;
+       // this.sid = solution.sid;
+       // this.code = solution.code;
+      //  this.language = solution.language;
+        this.getCookie();
     }
 }
 
@@ -106,6 +150,9 @@ module.exports = function (config,oj_name) {
                 }
             }
         });
+        const cur_account=account.shift();
+        const judger = new Judger(config, cur_account, proxy,oj_name);
+        judger.run();
     };
 
 
@@ -124,7 +171,7 @@ module.exports = function (config,oj_name) {
             account.push(account_config[i]);
         }
         runner();
-        this.timer = setInterval(runner, 3000);
+      //  this.timer = setInterval(runner, 3000);
     };
     this.stop = function () {
         clearInterval(this.timer);

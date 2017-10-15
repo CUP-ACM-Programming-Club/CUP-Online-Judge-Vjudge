@@ -6,35 +6,57 @@ const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
 const sleep = sleep_module.sleep;
 const log = console.log;
-let mysql;
-
+let hdu_mysql;
+const problem_status = {
+    "Pending": 0,
+    "Queuing": 0,
+    "Compiling": 2,
+    "Running": 3,
+    "Accepted": 4,
+    "Presentation Error": 5,
+    "Wrong Answer": 6,
+    "Time Limit Exceeded": 7,
+    "Memory Limit Exceeded": 8,
+    "Output Limit Exceeded": 9,
+    "Compilation Error": 11
+};
 
 let proxy = "";
 let account = [];
 
 class Judger {
-    constructor(config, account, proxy,oj_name) {
+    constructor(config, account, proxy) {
         this.proxy = proxy;
         this.account = account;
         this.config = config;
-        this.url = config['url'][oj_name];
-        this.oj_name=oj_name;
+        this.url = config['url']['hdu'];
         this.cookie="";
-        this.ojmodule=require("./include/"+this.oj_name+"_module");
     }
 
     record(rows){
         let accpeted = parseInt(rows[0]['accepted']) + 1;
-        mysql.query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid,this.oj_name.toUpperCase()]);
+        hdu_mysql.query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid,"HDU"]);
     }
 
     async connect(err, response) {
-        const sqlArr = this.ojmodule.format(response,this.sid);
-        mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
+        const $ = cheerio.load(response.text);;
+        const result = $(".table_text").find('tr').eq(1).find('td');
+        const runner_id = result.eq(0).text();
+        let status = result.eq(2).text();
+        let time = result.eq(4).text();
+        time = time.substr(0, time.length - 2);
+        let memory = result.eq(5).text();
+        memory = memory.substr(0, memory.length - 1);
+        log("runner_id:"+runner_id+"memory:"+memory+",time:"+time);
+        if (status.substr(0, 13) === "Runtime Error") status = 10;
+        else status = problem_status[status];
+        const sid = this.sid;
+        const sqlArr = [runner_id, status, time, memory, sid];
+        hdu_mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
         if (status > 3) {
             account.push(this.account);
             if (status === 4) {
-                mysql.query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid,this.oj_name.toUpperCase()], (rows)=>{this.record(rows)});
+                hdu_mysql.query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid,"HDU"], (rows)=>{this.record(rows)});
             }
         }
         else {
@@ -45,9 +67,9 @@ class Judger {
 
     updateStatus(pid, cookie) {
         if (this.proxy.length > 4)
-            superagent.get(this.ojmodule.updateurl(pid,this.account)).set("Cookie", cookie).proxy(proxy).set(this.config['browser']).end((err,response)=>{this.connect(err,response)});
+            superagent.get("http://acm.hdu.edu.cn/status.php?first=&pid=" + pid + "&user=" + this.account['username'] + "&lang=0&status=0").set("Cookie", cookie).proxy(proxy).set(this.config['browser']).end((err,response)=>{this.connect(err,response)});
         else
-            superagent.get(this.ojmodule.updateurl(pid,this.account)).set("Cookie", cookie).set(this.config['browser']).end((err,response)=>{this.connect(err,response)});
+            superagent.get("http://acm.hdu.edu.cn/status.php?first=&pid=" + pid + "&user=" + this.account['username'] + "&lang=0&status=0").set("Cookie", cookie).set(this.config['browser']).end((err,response)=>{this.connect(err,response)});
     };
 
     async submitAction() {
@@ -57,7 +79,12 @@ class Judger {
     };
 
     submitAnswer(pid, lang, code, cookie) {
-        const postmsg=this.ojmodule.post_format(pid,lang,code);
+        let postmsg = {
+            check: "0",
+            problemid: pid,
+            language: lang,
+            usercode: code
+        };
         if (proxy.length > 4)
             superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).send(postmsg).end((err,response)=>{this.submitAction(err,response)});
         else
@@ -84,11 +111,10 @@ class Judger {
     }
 }
 
-module.exports = function (config,oj_name) {
-    const ojmodule=require("./include/"+oj_name+"_module");
-    mysql = new mysql_module(config);
+module.exports = function (config) {
+    hdu_mysql = new mysql_module(config);
     const loop_function = async function () {
-        mysql.query("select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='"+oj_name.toUpperCase()+"')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
+        hdu_mysql.query("select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='HDU' )solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
             console.log(rows.length);
             if (rows.length > 0) {
                 console.log("queue has "+rows.length+" element.Running.");
@@ -100,8 +126,8 @@ module.exports = function (config,oj_name) {
                         code: rows[i]['source']
                     };
                     const cur_account=account.shift();
-                    mysql.query("update vjudge_solution set result=?,judger=? where solution_id=?", [14,ojmodule.formatAccount(cur_account),rows[i]['solution_id']]);
-                    const judger = new Judger(config, cur_account, proxy,oj_name);
+                    hdu_mysql.query("update vjudge_solution set result=?,judger=? where solution_id=?", [14,cur_account['username'],rows[i]['solution_id']]);
+                    const judger = new Judger(config, cur_account, proxy);
                     judger.run(solution);
                 }
             }
@@ -119,7 +145,7 @@ module.exports = function (config,oj_name) {
     this.start = function (_proxy) {
         if (_proxy !== 'none')
             proxy = _proxy;
-        const account_config = config['login'][oj_name];
+        const account_config = config['login']['hdu'];
         for (i in account_config) {
             account.push(account_config[i]);
         }

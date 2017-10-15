@@ -30,7 +30,7 @@ class Judger {
 
     async connect(err, response) {
         const sqlArr = this.ojmodule.format(response,this.sid);
-		const status=sqlArr[1];
+        const status=sqlArr[1];
         mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
         if (status > 3) {
             account.push(this.account);
