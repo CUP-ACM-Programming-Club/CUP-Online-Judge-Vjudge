@@ -1,19 +1,22 @@
 {
   "name": "vjudge",
-  "version": "1.4.0",
+  "version": "1.0.0",
   "description": "HUSTOJ vjudge module",
   "main": "daemon.js",
   "scripts": {
     "start": "node daemon.js"
   },
   "dependencies": {
-    "cheerio": "~1.0.0-rc.2",
-    "http": "~0.0.0",
-    "mysql": "~2.14.1",
-    "querystring": "~0.2.0",
+    "cheerio": "^1.0.0-rc.2",
+    "http": "0.0.0",
+    "iconv-lite": "^0.4.19",
+    "mysql": "^2.14.1",
+    "querystring": "^0.2.0",
     "request": "~2.81.0",
-    "superagent": "~3.6.0",
+    "superagent": "^3.6.0",
     "superagent-charset": "^1.2.0",
-    "superagent-proxy": "^1.0.2"
+    "superagent-proxy": "^1.0.2",
+    "websocket": "^1.0.24",
+    "log4js": "~2.3.12"
   }
 }

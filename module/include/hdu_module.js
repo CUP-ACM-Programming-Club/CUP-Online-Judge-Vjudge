@@ -1,4 +1,5 @@
 const cheerio=require('cheerio');
+const log = console.log;
 const problem_status = {
     "Pending": 0,
     "Queuing": 0,

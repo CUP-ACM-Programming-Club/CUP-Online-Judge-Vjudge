@@ -1,6 +1,7 @@
 const cheerio=require('cheerio');
 const Base64_module = require('./Base64');
 const Base64 = new Base64_module();
+const log = console.log;
 const problem_status = {
     "Pending": 0,
     "Queuing": 0,
@@ -19,14 +20,23 @@ const problem_status = {
 exports.format=function (response,sid) {
     const $ = cheerio.load(response.text);
     const result=$("table").eq(4).find('tr').eq(1).find('td');
+    log($("table").eq(4).find('tr').html());
     const runner_id = result.eq(0).text();
     let status = result.eq(3).text();
-    let time = result.eq(5).text();
-    time = time.substr(0, time.length - 2);
-    let memory = result.eq(4).text();
-    memory = memory.substr(0, memory.length - 1);
-    log("runner_id:"+runner_id+"memory:"+memory+",time:"+time);
     status = problem_status[status];
+    let time;
+    let memory;
+    if (status != 4) {
+        time = 0;
+        memory = 0;
+    }
+    else {
+        time = result.eq(5).text();
+        time = time.substr(0, time.length - 2);
+        memory = result.eq(4).text();
+        memory = memory.substr(0, memory.length - 1);
+    }
+    log("runner_id:" + runner_id + "memory:" + memory + ",time:" + time);
     return [runner_id, status, time, memory, sid];
 };
 

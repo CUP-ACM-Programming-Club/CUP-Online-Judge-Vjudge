@@ -5,6 +5,7 @@ const mysql_module = require('./include/mysql_module');
 const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
 const sleep = sleep_module.sleep;
+const logger = require('./logger').logger('cheese', 'info');
 const log = console.log;
 let mysql;
 
@@ -30,7 +31,7 @@ class Judger {
 
     async connect(err, response) {
         const sqlArr = this.ojmodule.format(response,this.sid);
-        const status=sqlArr[1];
+        const status = sqlArr[1];
         mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
         if (status > 3) {
             account.push(this.account);
@@ -53,7 +54,8 @@ class Judger {
 
     async submitAction() {
         await sleep(2000);
-        log("pid:"+this.pid+" come to update");
+        logger.info("PID:" + this.pid + " come to update");
+        //("pid:"+this.pid+" come to update");
         this.updateStatus(this.pid, this.cookie);
     };
 
@@ -90,9 +92,9 @@ module.exports = function (config,oj_name) {
     mysql = new mysql_module(config);
     const loop_function = async function () {
         mysql.query("select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='"+oj_name.toUpperCase()+"')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
-            console.log(rows.length);
+            //.log(rows.length);
             if (rows.length > 0) {
-                console.log("queue has "+rows.length+" element.Running.");
+                //console.log("queue has "+rows.length+" element.Running.");
                 for (i = 0; i < rows.length && account.length > 0; ++i) {
                     const solution = {
                         sid: rows[i]['solution_id'],
@@ -111,10 +113,10 @@ module.exports = function (config,oj_name) {
 
 
     async function runner() {
-        log(account);
-        console.log("Run loop_function.");
+        //log(account);
+        //console.log("Run loop_function.");
         await loop_function();
-        console.log("finished loop_function.");
+        //console.log("finished loop_function.");
     }
 
     this.start = function (_proxy) {
@@ -129,6 +131,6 @@ module.exports = function (config,oj_name) {
     };
     this.stop = function () {
         clearInterval(this.timer);
-        log("Loop is stop");
+        //log("Loop is stop");
     }
 };

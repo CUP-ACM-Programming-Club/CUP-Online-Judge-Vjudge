@@ -7,6 +7,7 @@ const functional_module = require('./functional');
 const functional = new functional_module();
 const sleep = functional.sleep;
 let proxy = "";
+let uva = [];
 module.exports = function (accountArr, config) {
     mysql = new mysql_module(config);
     if (typeof config['proxy'] !== 'undefined' && typeof  config['proxy'] !== null)
@@ -105,7 +106,7 @@ module.exports = function (accountArr, config) {
             let arr = [];
             for (i in json) {
                 if (90 === parseInt(json[i][2])) {
-                    let problem_id = json[i][1];
+                    let problem_id = uva[json[i][1]];
                     arr.push(problem_id);
                 }
             }
@@ -142,7 +143,8 @@ module.exports = function (accountArr, config) {
             const json = (JSON.parse(response.text))['acRecords'];
             const hdu = json['HDU'];
             const poj = json['POJ'];
-            const codeforces = json['Gym'];
+            const codeforces_gym = json['Gym'];
+            const codeforces = json['CodeForces'];
             const uva = json['UVA'];
             const uvalive = json['UVALive'];
             const fzu = json['FZU'];
@@ -157,6 +159,7 @@ module.exports = function (accountArr, config) {
             save_to_database('HDU', hdu);
             save_to_database('POJ', poj);
             save_to_database('CODEFORCES', codeforces);
+            save_to_database('CODEFORCES_GYM', codeforces_gym);
             save_to_database('UVA', uva);
             save_to_database('UVALive', uvalive);
             save_to_database('FZU', fzu);
@@ -243,6 +246,21 @@ module.exports = function (accountArr, config) {
         "hustoj-upc": hustoj_upc_crawler,
         "upcvj": upcvj
     };
+
+    const uAction = (err, response) => {
+        if (err) return;
+        const res = JSON.parse(response.text);
+        for (i in res) {
+            uva[res[i][0]] = res[i][1];
+        }
+    };
+
+    const uva_to = () => {
+        if (proxy.length > 4)
+            superagent.get("https://uhunt.onlinejudge.org/api/p").set(config['browser']).proxy(proxy).end(uAction);
+        else
+            superagent.get("https://uhunt.onlinejudge.org/api/p").set(config['browser']).end(uAction);
+    };
     const crawler = () => {
         for (const value in accountArr) {
             if (value === 'user_id') continue;
@@ -250,6 +268,7 @@ module.exports = function (accountArr, config) {
         }
     };
     this.run = () => {
+        uva_to();
         crawler();
     };
 };

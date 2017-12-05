@@ -5,6 +5,7 @@ const mysql_module = require('./include/mysql_module');
 const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
 const sleep = sleep_module.sleep;
+const logger = require('./logger').logger('cheese', 'info');
 const log = console.log;
 let mysql;
 
@@ -29,7 +30,7 @@ class Judger {
     }
 
     async connect(err, response) {
-        console.log(response.text);
+        // console.log(response.text);
         const sqlArr = this.ojmodule.format(response,this.sid);
         mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
         if (sqlArr[1] > 3) {
@@ -53,14 +54,14 @@ class Judger {
 
     async submitAction(err,response) {
         const $ = cheerio.load(response.text);
-        console.log($.text());
+        //console.log($.text());
         await sleep(500);
-        log("pid:"+this.pid+" come to update");
+        logger.info("PID:" + this.pid + " come to update");
+        //log("pid:"+this.pid+" come to update");
         this.updateStatus(this.pid, this.cookie);
     };
 
     submitAnswer(pid, lang, code, cookie) {
-        console.log(cookie);
         const postmsg=this.ojmodule.post_format(pid,lang,code);
         if (proxy.length > 4)
             superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).send(postmsg).end((err,response)=>{this.submitAction(err,response)});
@@ -73,7 +74,6 @@ class Judger {
        // console.log(response.headers);
         //const $ = cheerio.load(response.text);
        // console.log($.text());
-       // console.log(response);
         this.submitAnswer(this.pid, this.language, this.code, cookie);
     };
 
@@ -88,17 +88,27 @@ class Judger {
     accessAction(err,response)
     {
         const $ = cheerio.load(response.text);
-        const hidden_elements=$("input[name=cbsecuritym3]");
-        this.account["op2"]="login";
-        this.account["lang"]="english";
-        this.account["force_session"]="1";
-        this.account["return"]="B:aHR0cDovL3V2YS5vbmxpbmVqdWRnZS5vcmcv";
-        this.account["message"]="0";
-        this.account["loginfrom"]="loginmodule";
-        this.account["cbsecuritym3"]=hidden_elements.eq(0).attr("value");
-        this.account["j1a423fa7ad12ba8910ee28b44f2175f3"]=1;
-        this.account['remember']="yes";
+        const hidden_elements = $("input[type=hidden]");
+        for (let i = 0; i < 8; ++i) {
+            this.account[hidden_elements.eq(i).attr('name')] = hidden_elements.eq(i).attr('value');
+        }
+        this.account['remember'] = "yes";
+        console.log(this.account);
         this.login(response.headers["set-cookie"]);
+        /*
+        const $ = cheerio.load(response.text);
+                const hidden_elements=$("input[name=cbsecuritym3]");
+                this.account["op2"]="login";
+                this.account["lang"]="english";
+                this.account["force_session"]="1";
+                this.account["return"]="B:aHR0cDovL3V2YS5vbmxpbmVqdWRnZS5vcmcv";
+                this.account["message"]="0";
+                this.account["loginfrom"]="loginmodule";
+                this.account["cbsecuritym3"]=hidden_elements.eq(0).attr("value");
+                this.account["j1a423fa7ad12ba8910ee28b44f2175f3"]=1;
+                this.account['remember']="yes";
+                this.login(response.headers["set-cookie"]);
+        */
     }
 
     access(cookie){
@@ -120,10 +130,10 @@ class Judger {
     }
 
     run(solution) {
-       // this.pid = solution.pid;
-       // this.sid = solution.sid;
-       // this.code = solution.code;
-      //  this.language = solution.language;
+        this.pid = solution.pid;
+        this.sid = solution.sid;
+        this.code = solution.code;
+        this.language = solution.language;
         this.getCookie();
     }
 }
@@ -150,17 +160,14 @@ module.exports = function (config,oj_name) {
                 }
             }
         });
-        const cur_account=account.shift();
-        const judger = new Judger(config, cur_account, proxy,oj_name);
-        judger.run();
     };
 
 
     async function runner() {
-        log(account);
-        console.log("Run loop_function.");
+        //log(account);
+        //console.log("Run loop_function.");
         await loop_function();
-        console.log("finished loop_function.");
+        //console.log("finished loop_function.");
     }
 
     this.start = function (_proxy) {
@@ -171,10 +178,10 @@ module.exports = function (config,oj_name) {
             account.push(account_config[i]);
         }
         runner();
-      //  this.timer = setInterval(runner, 3000);
+        this.timer = setInterval(runner, 3000);
     };
     this.stop = function () {
         clearInterval(this.timer);
-        log("Loop is stop");
+        //log("Loop is stop");
     }
 };

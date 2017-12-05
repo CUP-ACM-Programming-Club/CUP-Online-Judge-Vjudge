@@ -1,11 +1,9 @@
 const config = require('./config.json');
-const HDUVjudge = require('./module/vjudger');
-const POJVjudge = require('./module/pojjudger');
-const uvaVjudge = require('./module/uvajudger');
+const Vjudge = require('./module/vjudger');
 const submitAnalyse = require('./module/submitAnalyse');
-const hdu_judger = new HDUVjudge(config,"hdu");
-const poj_judger = new POJVjudge(config,"poj");
-const uva_judger = new uvaVjudge(config,"uva");
+const hdu_judger = new Vjudge(config, "hdu");
+const poj_judger = new Vjudge(config, "poj");
+const uva_judger = new Vjudge(config, "uva");
 const analyse = new submitAnalyse(config);
 poj_judger.start(config['proxy']);
 hdu_judger.start(config['proxy']);
