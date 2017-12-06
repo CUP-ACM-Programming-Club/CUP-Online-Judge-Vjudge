@@ -19,6 +19,7 @@ class Judger {
         this.oj_name = oj_name;
         this.cookie = "";
         this.ojmodule = require("./include/" + this.oj_name + "_module");
+        this.finished = false;
     }
 
     record(rows) {
@@ -103,6 +104,10 @@ class Judger {
         this.sid = solution.sid;
         this.code = solution.code;
         this.language = solution.language;
+        setTimeout(() => {
+            if (!this.finished)
+                account[this.oj_name].push(this.account);
+        }, 1000 * 60 * 2);
         this.login();
     }
 }

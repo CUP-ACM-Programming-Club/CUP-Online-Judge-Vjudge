@@ -22,7 +22,7 @@ exports.format=function(response, sid)
     const status=problem_status[result[2]];
     const time=result[3];
     const memory=0;
-    console.log([runner_id, status, time, memory, sid]);
+    //console.log([runner_id, status, time, memory, sid]);
     return [runner_id, status, time, memory, sid];
 };
 
