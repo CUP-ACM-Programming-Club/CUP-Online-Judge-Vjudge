@@ -31,6 +31,7 @@ class Judger {
         const status = sqlArr[1];
         query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
         if (status > 3) {
+            this.finished = true;
             account[this.oj_name].push(this.account);
             if (status === 4) {
                 query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()], (rows) => {
