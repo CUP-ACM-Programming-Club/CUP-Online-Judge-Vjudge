@@ -1,6 +1,5 @@
 const superagent = require('superagent');
 require('superagent-proxy')(superagent);
-const cheerio = require('cheerio');
 const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
 const log4js = require('./logger');
@@ -83,12 +82,21 @@ class Judger {
         }
         catch (e) {
             logger.fatal(e);
-            query("update vjudge_solution set result='0' where solution_id=?", [this.sid]);
-            account[this.oj_name].push(this.account);
+            this.error();
         }
     }
 
+    error() {
+        query("update vjudge_solution set result='0' where solution_id=?", [this.sid]);
+        account[this.oj_name].push(this.account);
+    }
+
     login() {
+        setTimeout(() => {
+            if (!this.finished) {
+                this.error();
+            }
+        }, 1000 * 60 * 2);
         if (this.proxy.length > 4)
             superagent.post(this.url.login_url).set(this.config['browser']).proxy(this.proxy).send(this.account).end((err, response) => {
                 this.loginAction(err, response, response.headers["set-cookie"]);
@@ -104,10 +112,6 @@ class Judger {
         this.sid = solution.sid;
         this.code = solution.code;
         this.language = solution.language;
-        setTimeout(() => {
-            if (!this.finished)
-                account[this.oj_name].push(this.account);
-        }, 1000 * 60 * 2);
         this.login();
     }
 }

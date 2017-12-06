@@ -5,7 +5,6 @@ const log4js = require('./logger');
 const logger = log4js.logger('cheese', 'info');
 log4js.connectLogger(logger, {level: 'info'});
 const Judger = require('./judger');
-let account = require('./include/account');
 
 class UVaJudger extends Judger {
     constructor(config, account, proxy, oj_name) {
@@ -53,10 +52,6 @@ class UVaJudger extends Judger {
         this.sid = solution.sid;
         this.code = solution.code;
         this.language = solution.language;
-        setTimeout(() => {
-            if (!this.finished)
-                account[this.oj_name].push(this, account);
-        }, 1000 * 60 * 2);
         this.getCookie();
     }
 }
