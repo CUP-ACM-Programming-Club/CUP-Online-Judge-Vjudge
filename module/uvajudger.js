@@ -1,20 +1,21 @@
 const superagent = require('superagent');
 require('superagent-proxy')(superagent);
 const cheerio = require('cheerio');
-const mysql_module = require('./include/mysql_module');
 const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
+const log4js = require('./logger');
+const logger = log4js.logger('cheese', 'info');
 const sleep = sleep_module.sleep;
-const logger = require('./logger').logger('cheese', 'info');
-const log = console.log;
-let mysql;
+const query = require('./include/mysql_module');
+log4js.connectLogger(logger, {level: 'info'});
 
+let account = {};
 
-let proxy = "";
-let account = [];
 
 class Judger {
     constructor(config, account, proxy,oj_name) {
+        // console.log(account);
+        // console.log(proxy);
         this.proxy = proxy;
         this.account = account;
         this.config = config;
@@ -26,21 +27,23 @@ class Judger {
 
     record(rows){
         let accpeted = parseInt(rows[0]['accepted']) + 1;
-        mysql.query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid,this.oj_name.toUpperCase()]);
+        query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
     }
 
     async connect(err, response) {
-        // console.log(response.text);
         const sqlArr = this.ojmodule.format(response,this.sid);
-        mysql.query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
-        if (sqlArr[1] > 3) {
-            account.push(this.account);
-            if (sqlArr[1] === 4) {
-                mysql.query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid,this.oj_name.toUpperCase()], (rows)=>{this.record(rows)});
+        const status = sqlArr[1];
+        query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
+        if (status > 3) {
+            account[this.oj_name].push(this.account);
+            if (status === 4) {
+                query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()], (rows) => {
+                    this.record(rows)
+                });
             }
         }
         else {
-            await sleep(500);
+            await sleep(2000);
             this.updateStatus(this.pid, this.sid, this.cookie);
         }
     };
@@ -71,9 +74,9 @@ class Judger {
 
     loginAction(err, response,cookie) {
         //console.log("login finished");
-       // console.log(response.headers);
+        // console.log(response.headers);
         //const $ = cheerio.load(response.text);
-       // console.log($.text());
+        // console.log($.text());
         this.submitAnswer(this.pid, this.language, this.code, cookie);
     };
 
@@ -138,50 +141,65 @@ class Judger {
     }
 }
 
-module.exports = function (config,oj_name) {
-    const ojmodule=require("./include/"+oj_name+"_module");
-    mysql = new mysql_module(config);
-    const loop_function = async function () {
-        mysql.query("select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='"+oj_name.toUpperCase()+"')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ", async function (rows) {
-            console.log(rows.length);
-            if (rows.length > 0) {
-                console.log("queue has "+rows.length+" element.Running.");
-                for (i = 0; i < rows.length && account.length > 0; ++i) {
-                    const solution = {
-                        sid: rows[i]['solution_id'],
-                        pid: rows[i]['problem_id'],
-                        language: rows[i]['language'],
-                        code: rows[i]['source']
-                    };
-                    const cur_account=account.shift();
-                    mysql.query("update vjudge_solution set result=?,judger=? where solution_id=?", [14,ojmodule.formatAccount(cur_account),rows[i]['solution_id']]);
-                    const judger = new Judger(config, cur_account, proxy,oj_name);
-                    judger.run(solution);
-                }
-            }
-        });
-    };
-
-
-    async function runner() {
-        //log(account);
-        //console.log("Run loop_function.");
-        await loop_function();
-        //console.log("finished loop_function.");
+class Vjudge_daemon {
+    constructor(config, oj_name) {
+        this.config = config;
+        this.oj_name = oj_name;
+        this.ojmodule = require("./include/" + oj_name + "_module");
     }
 
-    this.start = function (_proxy) {
-        if (_proxy !== 'none')
-            proxy = _proxy;
-        const account_config = config['login'][oj_name];
-        for (i in account_config) {
-            account.push(account_config[i]);
+    loop_function() {
+        if (account[this.oj_name].length > 0) {
+            query("select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='" + this.oj_name.toUpperCase() + "')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ")
+                .then((rows) => {
+                    if (rows.length > 0) {
+                        logger.info(rows.length + " code(s) in queue.Judging");
+                        for (let i = 0; i < rows.length && account[this.oj_name].length > 0; ++i) {
+                            // console.log(account[this.oj_name]);
+                            const solution = {
+                                sid: rows[i]['solution_id'],
+                                pid: rows[i]['problem_id'],
+                                language: rows[i]['language'],
+                                code: rows[i]['source']
+                            };
+                            if (account[this.oj_name].length > 0) {
+                                //console.log(rows);
+                                // console.log(solution);
+                                const cur_account = account[this.oj_name].shift();
+                                query("update vjudge_solution set result=?,judger=? where solution_id=?", [14, this.ojmodule.formatAccount(cur_account), rows[i]['solution_id']]);
+                                const judger = new Judger(this.config, cur_account, this.proxy, this.oj_name);
+                                judger.run(solution);
+                            }
+                        }
+                    }
+                });
         }
-        runner();
-        this.timer = setInterval(runner, 3000);
-    };
-    this.stop = function () {
-        clearInterval(this.timer);
-        //log("Loop is stop");
     }
-};
+
+    precheck() {
+        query("update vjudge_solution set result=0 and runner_id=0 where result='14' and oj_name='" + this.oj_name.toUpperCase() + "'");
+    }
+
+    start(_proxy) {
+        if (_proxy !== 'none')
+            this.proxy = _proxy;
+        this.precheck();
+        // console.log(_proxy);
+        const account_config = this.config['login'][this.oj_name];
+        const len = account_config.length;
+        account[this.oj_name] = [];
+        for (let i = 0; i < len; ++i) {
+            account[this.oj_name].push(account_config[i]);
+        }
+        this.loop_function();
+        this.timer = setInterval(() => {
+            this.loop_function()
+        }, 3000);
+    }
+
+    stop() {
+        clearInterval(this.timer);
+    }
+}
+
+module.exports = Vjudge_daemon;

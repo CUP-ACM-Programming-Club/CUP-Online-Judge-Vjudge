@@ -88,7 +88,7 @@ class Judger {
         }
     }
 
-    login() {
+    login(cookie) {
         // console.log("loggin succeed");
         if (this.proxy.length > 4)
             superagent.post(this.url.login_url).set(this.config['browser']).proxy(this.proxy).send(this.account).end((err,response)=>{this.loginAction(err,response)});
