@@ -27,21 +27,32 @@ class Judger {
     }
 
     async connect(err, response) {
-        const sqlArr = this.ojmodule.format(response, this.sid);
-        const status = sqlArr[1];
-        query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
-        if (status > 3) {
-            this.finished = true;
-            account[this.oj_name].push(this.account);
-            if (status === 4) {
-                query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()], (rows) => {
-                    this.record(rows)
-                });
+        if(err)
+        {
+            logger.fatal(err);
+        }
+        try {
+            const sqlArr = this.ojmodule.format(response, this.sid);
+            const status = sqlArr[1];
+            query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
+            if (status > 3) {
+                this.finished = true;
+                account[this.oj_name].push(this.account);
+                if (status === 4) {
+                    query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()], (rows) => {
+                        this.record(rows)
+                    });
+                }
+            }
+            else {
+                await sleep(2000);
+                this.updateStatus(this.pid, this.sid, this.cookie);
             }
         }
-        else {
-            await sleep(2000);
-            this.updateStatus(this.pid, this.sid, this.cookie);
+        catch(e)
+        {
+            logger.fatal(e);
+            account[this.oj_name].push(this.account);
         }
     };
 
