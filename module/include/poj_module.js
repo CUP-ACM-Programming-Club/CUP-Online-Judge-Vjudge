@@ -20,7 +20,7 @@ const problem_status = {
 exports.format=function (response,sid) {
     const $ = cheerio.load(response.text);
     const result=$("table").eq(4).find('tr').eq(1).find('td');
-    log($("table").eq(4).find('tr').html());
+    //log($("table").eq(4).find('tr').html());
     const runner_id = result.eq(0).text();
     let status = result.eq(3).text();
     status = problem_status[status];

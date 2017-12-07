@@ -12,13 +12,22 @@ class UVaJudger extends Judger {
     }
 
     accessAction(err, response) {
-        const $ = cheerio.load(response.text);
-        const hidden_elements = $("input[type=hidden]");
-        for (let i = 0; i < 8; ++i) {
-            this.account[hidden_elements.eq(i).attr('name')] = hidden_elements.eq(i).attr('value');
+        if (err) {
+            logger.fatal(err);
         }
-        this.account['remember'] = "yes";
-        this.login(response.headers["set-cookie"]);
+        try {
+            const $ = cheerio.load(response.text);
+            const hidden_elements = $("input[type=hidden]");
+            for (let i = 0; i < 8; ++i) {
+                this.account[hidden_elements.eq(i).attr('name')] = hidden_elements.eq(i).attr('value');
+            }
+            this.account['remember'] = "yes";
+            this.login(response.headers["set-cookie"]);
+        }
+        catch (e) {
+            logger.fatal(e);
+            this.error();
+        }
     }
 
     access(cookie) {
@@ -33,7 +42,16 @@ class UVaJudger extends Judger {
     }
 
     cookieAction(err, response) {
-        this.access(response.headers["set-cookie"]);
+        if (err) {
+            logger.fatal(err);
+        }
+        try {
+            this.access(response.headers["set-cookie"]);
+        }
+        catch (e) {
+            logger.fatal(e);
+            this.error();
+        }
     }
 
     getCookie() {
