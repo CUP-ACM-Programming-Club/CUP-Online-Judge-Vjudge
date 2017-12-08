@@ -19,6 +19,7 @@ class Judger {
         this.cookie = "";
         this.ojmodule = require("./include/" + this.oj_name + "_module");
         this.finished = false;
+        logger.info(`constructed Judger`);
     }
 
     record(rows) {
@@ -27,32 +28,33 @@ class Judger {
     }
 
     async connect(err, response) {
-        if(err)
-        {
+        if (err) {
             logger.fatal(err);
         }
         try {
             const sqlArr = this.ojmodule.format(response, this.sid);
             const status = sqlArr[1];
+            this.result = sqlArr;
             query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
             if (status > 3) {
                 this.finished = true;
-                account[this.oj_name].push(this.account);
+                account[this.oj_name].push(this);
                 if (status === 4) {
-                    query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()], (rows) => {
-                        this.record(rows)
-                    });
+                    query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()])
+                        .then((rows) => {
+                            this.record(rows);
+                        })
+                    ;
                 }
             }
             else {
-                await sleep(2000);
+                await sleep(500);
                 this.updateStatus(this.pid, this.sid, this.cookie);
             }
         }
-        catch(e)
-        {
+        catch (e) {
             logger.fatal(e);
-            account[this.oj_name].push(this.account);
+            account[this.oj_name].push(this);
         }
     };
 
@@ -68,7 +70,7 @@ class Judger {
     };
 
     async submitAction() {
-        await sleep(2000);
+        await sleep(500);
         logger.info("PID:" + this.pid + " come to update");
         this.updateStatus(this.pid, this.cookie);
     };
@@ -100,7 +102,11 @@ class Judger {
 
     error() {
         query("update vjudge_solution set result='0' where solution_id=?", [this.sid]);
-        account[this.oj_name].push(this.account);
+        account[this.oj_name].push(this);
+    }
+
+    getAccount() {
+        return this.account;
     }
 
     login() {
@@ -124,6 +130,8 @@ class Judger {
         this.sid = solution.sid;
         this.code = solution.code;
         this.language = solution.language;
+        this.finished = false;
+        logger.info(`run judger for sid:${this.sid}`);
         this.login();
     }
 }

@@ -28,10 +28,9 @@ class Vjudge_daemon {
                                 code: rows[i]['source']
                             };
                             if (account[this.oj_name].length > 0) {
-                                const cur_account = account[this.oj_name].shift();
-                                query("update vjudge_solution set result=?,judger=? where solution_id=?", [14, this.ojmodule.formatAccount(cur_account), rows[i]['solution_id']]);
-                                const judger = new UVaJudger(this.config, cur_account, this.proxy, this.oj_name);
-                                judger.run(solution);
+                                const cur_judger = account[this.oj_name].shift();
+                                query("update vjudge_solution set result=?,judger=? where solution_id=?", [14, this.ojmodule.formatAccount(cur_judger.getAccount()), rows[i]['solution_id']]);
+                                cur_judger.run(solution);
                             }
                         }
                     }
@@ -51,12 +50,12 @@ class Vjudge_daemon {
         const len = account_config.length;
         account[this.oj_name] = [];
         for (let i = 0; i < len; ++i) {
-            account[this.oj_name].push(account_config[i]);
+            account[this.oj_name].push(new UVaJudger(this.config, account_config[i], this.proxy, this.oj_name))
         }
         this.loop_function();
         this.timer = setInterval(() => {
             this.loop_function()
-        }, 3000);
+        }, 1000);
     }
 
     stop() {

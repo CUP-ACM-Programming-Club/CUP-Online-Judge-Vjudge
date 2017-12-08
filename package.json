@@ -4,13 +4,17 @@
   "description": "HUSTOJ vjudge module",
   "main": "daemon.js",
   "scripts": {
-    "start": "node daemon.js"
+    "test": "node daemon.js",
+    "start": "forever start daemon.js",
+    "stop": "forever stop daemon.js",
+    "restart": "forever restart daemon.js",
+    "status": "forever status daemon.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "http": "0.0.0",
     "iconv-lite": "^0.4.19",
-    "mysql": "^2.14.1",
+    "mysql2": "~1.5.1",
     "querystring": "^0.2.0",
     "request": "~2.81.0",
     "superagent": "^3.6.0",
