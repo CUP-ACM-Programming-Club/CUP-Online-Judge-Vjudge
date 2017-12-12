@@ -3,7 +3,7 @@ const logger = log4js.logger('cheese', 'info');
 log4js.connectLogger(logger, {level: 'info'});
 const UVaJudger = require('./uvajudger');
 let account = require('./include/account');
-const Vjudge_daemon = require('judge_module');
+const Vjudge_daemon = require('./judge_module');
 
 class uva_judge_daemon extends Vjudge_daemon {
     constructor(config, oj_name) {

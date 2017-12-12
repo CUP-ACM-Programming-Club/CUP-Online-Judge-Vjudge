@@ -1,8 +1,10 @@
 const config = require('./config.json');
 const Vjudge = require('./module/vjudger');
 const submitAnalyse = require('./module/submitAnalyse');
+const problem_crawler = require('./module/problem_crawler');
 const hdu_judger = new Vjudge(config, "hdu");
 const poj_judger = new Vjudge(config, "poj");
 const uva_judger = new Vjudge(config, "uva");
 const analyse = new submitAnalyse(config);
+const crawler = new problem_crawler(config);
 analyse.start();
