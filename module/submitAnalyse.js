@@ -12,7 +12,7 @@ module.exports = function (config) {
     };
 
     const prepare = () => {
-        query("SELECT * FROM users_account", function (rows) {
+        query("SELECT * FROM users_account").then(function (rows) {
             for (i in rows) {
                 crawler(rows[i]);
                 sleep.sleep(10000);

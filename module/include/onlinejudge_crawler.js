@@ -2,30 +2,31 @@ const superagent = require('superagent');
 require('superagent-proxy')(superagent);
 const cheerio = require('cheerio');
 const querystring = require('querystring');
-const mysql_module = require('./mysql_module');
+const query = require('./mysql_module');
 const functional_module = require('./functional');
 const functional = new functional_module();
 const sleep = functional.sleep;
 let proxy = "";
 let uva = [];
 module.exports = function (accountArr, config) {
-    mysql = new mysql_module(config);
     if (typeof config['proxy'] !== 'undefined' && typeof  config['proxy'] !== null)
         proxy = config['proxy'];
     const save_to_database = async (oj_name, arr) => {
         if (typeof arr === 'undefined' || arr.length === 0) return;
-        mysql.query("SELECT * FROM vjudge_record WHERE user_id=? and oj_name=?", [accountArr['user_id'], oj_name], async function (rows) {
-            let list = [];
-            for (i in rows) {
-                list[rows[i].problem_id] = 1;
-            }
-            for (i in arr) {
-                if (arr[i].toString().length > 0 && (typeof list === 'undefined' || typeof list[arr[i]] === 'undefined')) {
-                    await mysql.query("INSERT INTO vjudge_record(user_id,oj_name,problem_id,time)VALUES(?,?,?,NOW())", [accountArr['user_id'], oj_name, arr[i]]);
-                    await sleep(10);
+        query("SELECT * FROM vjudge_record WHERE user_id=? and oj_name=?", [accountArr['user_id'], oj_name])
+            .then(async (rows) => {
+                let list = [];
+                for (i in rows) {
+                    list[rows[i].problem_id] = 1;
                 }
-            }
-        });
+                for (i in arr) {
+                    if (arr[i].toString().length > 0 && (typeof list === 'undefined' || typeof list[arr[i]] === 'undefined')) {
+                        await query("INSERT INTO vjudge_record(user_id,oj_name,problem_id,time)VALUES(?,?,?,NOW())",
+                            [accountArr['user_id'], oj_name, arr[i]]);
+                        await sleep(10);
+                    }
+                }
+            });
     };
 
     const hduAction = async function (err, response) {
