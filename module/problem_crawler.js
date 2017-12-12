@@ -1,5 +1,6 @@
 const superagent = require('superagent');
 require('superagent-proxy')(superagent);
+require('superagent-charset')(superagent);
 const cheerio = require('cheerio');
 const query = require('./include/mysql_module');
 
@@ -79,12 +80,12 @@ class Crawler {
 
     async hdu_crawler(pid) {
         if (this.proxy.length > 4) {
-            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).set(this.config['browser']).proxy(this.proxy).end(function (err, response) {
+            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).charset('gbk').set(this.config['browser']).proxy(this.proxy).end(function (err, response) {
                 this.hdu_crawlerAction(err, response, pid);
             });
         }
         else
-            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).set(this.config['browser']).end(function (err, response) {
+            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).charset('gbk').set(this.config['browser']).end(function (err, response) {
                 this.hdu_crawlerAction(err, response, pid);
             });
     }
