@@ -11,9 +11,9 @@ class Crawler {
             this.proxy = config['proxy'];
         else
             this.proxy = "";
-        this.start();
+        this.start.apply(this);
         this.timer = setInterval(() => {
-            this.start()
+            this.start.apply(this)
         }, 10 * 60 * 1000);
     }
 
@@ -23,9 +23,9 @@ class Crawler {
     }
 
     async start() {
-        const result = await this.query("SELECT max(problem_id) as start FROM vjudge_problem WHERE source='HDU'");
+        const result = await query("SELECT max(problem_id) as start FROM vjudge_problem WHERE source='HDU'");
         const start = parseInt(result[0].start) + 1;
-        this.hdu_crawler(start);
+        this.hdu_crawler.apply(this,start);
     }
 
     hdu_crawlerAction(err, response, pid) {
@@ -74,19 +74,19 @@ class Crawler {
                 "memory_limit": memory_limit
             };
             Crawler.mysql_query(question_arr);
-            this.hdu_crawler(pid + 1);
+            this.hdu_crawler.apply(this,pid+1);
         }
     }
 
-    async hdu_crawler(pid) {
+    hdu_crawler(pid) {
         if (this.proxy.length > 4) {
             superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).charset('gbk').set(this.config['browser']).proxy(this.proxy).end(function (err, response) {
-                this.hdu_crawlerAction(err, response, pid);
+                this.hdu_crawlerAction.apply(this,err, response, pid);
             });
         }
         else
             superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).charset('gbk').set(this.config['browser']).end(function (err, response) {
-                this.hdu_crawlerAction(err, response, pid);
+                this.hdu_crawlerAction.apply(this,err, response, pid);
             });
     }
 }
