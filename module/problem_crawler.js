@@ -1,39 +1,68 @@
 const superagent = require('superagent');
 require('superagent-proxy')(superagent);
+require('superagent-charset')(superagent);
 const cheerio = require('cheerio');
 const query = require('./include/mysql_module');
 
 class Crawler {
-    constructor(config) {
+    constructor(config, mode) {
         this.config = config;
         if (config['proxy'] !== 'none')
             this.proxy = config['proxy'];
         else
             this.proxy = "";
-        this.start();
-        this.timer = setInterval(() => {
-            this.start()
-        }, 10 * 60 * 1000);
+        if (mode === 1) {
+            this.start();
+            this.timer = setInterval(() => {
+                this.start()
+            }, 10 * 60 * 1000);
+            this.once = false;
+        }
+        else {
+            this.start(1000);
+            this.once = true;
+        }
     }
 
-    static mysql_query(arr) {
+    static insert(arr) {
         query("insert into vjudge_problem(title,description,input,output,sample_input,sample_output,problem_id,source,time_limit,memory_limit)" +
             " values(?,?,?,?,?,?,?,?,?,?)", [arr['title'], arr['description'], arr['input'], arr['output'], arr['sample_input'], arr['sample_output'], arr['problem_id'], arr['oj_name'], arr['time_limit'], arr['memory_limit']]);
     }
 
-    async start() {
-        const result = await this.query("SELECT max(problem_id) as start FROM vjudge_problem WHERE source='HDU'");
-        const start = parseInt(result[0].start) + 1;
-        this.hdu_crawler(start);
+    static update(arr) {
+        query("update vjudge_problem set title=?,description=?,input=?,output=?,sample_input=?,sample_output=?" +
+            " where problem_id=? and source=?", [arr['title'], arr['description'], arr['input'], arr['output'], arr['sample_input'], arr['sample_output'], arr['problem_id'], arr['oj_name']])
+    }
+
+    async start(pid) {
+        let start = 0;
+        const result = await query("SELECT max(problem_id) as start FROM vjudge_problem WHERE source='HDU'");
+        if (typeof pid === "number") {
+            start = pid;
+            const end = result[0].start;
+            for (let i = start; i <= end; i += 15) {
+                for (let j = 0; j < 15; ++j) {
+                    this.hdu_crawler(i + j);
+                }
+                await new Promise(resolve => setTimeout(resolve, 700));
+            }
+        }
+        else {
+            start = parseInt(result[0].start) + 1;
+            this.hdu_crawler(start);
+        }
     }
 
     hdu_crawlerAction(err, response, pid) {
         if (response.text.indexOf("No such problem") === -1) {
-            console.log("crawling " + pid);
+            if (!this.once)
+                console.log("crawling " + pid);
+            else
+                console.log("updating " + pid);
             let $ = cheerio.load(response.text);
             let title = $("title").eq(0).html();
             title = title.substr(title.indexOf('- ') + 2, title.length);
-            let title_name = $("h1").eq(0).html();
+            let title_name = $("h1").eq(0).text();
             let time_memory_txt = $("span").eq(0).html();
             let time_limit_txt = time_memory_txt.match(/Time Limit:[\s\S]+MS/)[0];
             let memory_limit_txt = time_memory_txt.match(/Memory Limit:[\s\S]+K/)[0];
@@ -45,11 +74,12 @@ class Crawler {
             const content_length = content.length;
             for (let i = 0; i < content_length; ++i) {
                 if (content.eq(i).html().indexOf("<img") !== -1) {
-                    const img_length = content.eq(i).find('img');
+                    const img_length = content.eq(i).find('img').length;
                     for (let j = 0; j < img_length; ++j) {
                         let src = content.eq(i).find('img').eq(j).attr('src');
                         if (src.indexOf('http') === -1) {
-                            src = "http://acm.hdu.edu.cn" + src.substr(src.indexOf("/data"), src.length);
+                            src = "http://acm.hdu.edu.cn/" + src.substr(src.indexOf("data"), src.length);
+                            console.log(src);
                             content.eq(i).find('img').eq(j).attr('src', src);
                         }
                     }
@@ -72,19 +102,23 @@ class Crawler {
                 "time_limit": time_limit,
                 "memory_limit": memory_limit
             };
-            Crawler.mysql_query(question_arr);
-            this.hdu_crawler(pid + 1);
+            if (this.once)
+                Crawler.update(question_arr);
+            else {
+                Crawler.insert(question_arr);
+                this.hdu_crawler(pid + 1);
+            }
         }
     }
 
-    async hdu_crawler(pid) {
+    hdu_crawler(pid) {
         if (this.proxy.length > 4) {
-            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).set(this.config['browser']).proxy(this.proxy).end(function (err, response) {
+            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).charset('gbk').set(this.config['browser']).proxy(this.proxy).end((err, response) => {
                 this.hdu_crawlerAction(err, response, pid);
             });
         }
         else
-            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).set(this.config['browser']).end(function (err, response) {
+            superagent.get("http://acm.hdu.edu.cn/showproblem.php?pid=" + pid).charset('gbk').set(this.config['browser']).end((err, response) => {
                 this.hdu_crawlerAction(err, response, pid);
             });
     }
