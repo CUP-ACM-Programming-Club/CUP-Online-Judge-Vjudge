@@ -22,6 +22,17 @@ class Judger {
         logger.info(`constructed Judger`);
     }
 
+    static valid_judge(err, response) {
+        if (err || response.text.match("wwwcache1.hdu.edu.cn") !== -1) {
+            logger.warn(err || "Server cannot work");
+            return false;
+        }
+        else {
+            return true;
+            //this.login();
+        }
+    }
+
     record(rows) {
         let accpeted = parseInt(rows[0]['accepted']) + 1;
         query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
@@ -32,6 +43,7 @@ class Judger {
             logger.fatal(err);
         }
         try {
+
             const sqlArr = this.ojmodule.format(response, this.sid);
             const status = sqlArr[1];
             this.result = sqlArr;
@@ -125,6 +137,19 @@ class Judger {
             });
     };
 
+    async website_valid_check() {
+        let valid = true;
+        if (this.proxy.length > 4)
+            await superagent.get(this.url.url).set(this.config['browser']).proxy(this.proxy).end((err, response) => {
+                valid = Judger.valid_judge(err, response);
+            });
+        else
+            await superagent.get(this.url.url).set(this.config['browser']).end((err, response) => {
+                valid = Judger.valid_judge(err, response);
+            });
+        return valid;
+    }
+
     run(solution) {
         this.pid = solution.pid;
         this.sid = solution.sid;
@@ -132,6 +157,7 @@ class Judger {
         this.language = solution.language;
         this.finished = false;
         logger.info(`run judger for sid:${this.sid}`);
+        //this.website_valid_check();
         this.login();
     }
 }

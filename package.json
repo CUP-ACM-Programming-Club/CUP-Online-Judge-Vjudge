@@ -1,7 +1,7 @@
 {
   "name": "vjudge",
-  "version": "1.0.0",
-  "description": "HUSTOJ vjudge module",
+  "version": "1.4.1",
+  "description": "CUP Online Judge vjudge module",
   "main": "daemon.js",
   "scripts": {
     "test": "node daemon.js",
