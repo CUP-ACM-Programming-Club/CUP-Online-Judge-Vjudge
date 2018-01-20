@@ -41,7 +41,7 @@ class Vjudge_daemon {
 	}
 
 	precheck() {
-		query("update vjudge_solution set result=0 , runner_id=0 where result='14' and oj_name='" + this.oj_name.toUpperCase() + "'");
+		query("update vjudge_solution set result=0 , runner_id=0 where (result=14 or result = 0) and oj_name='" + this.oj_name.toUpperCase() + "'");
 	}
 
 	start(_proxy) {
