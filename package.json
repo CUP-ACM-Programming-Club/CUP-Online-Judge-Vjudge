@@ -1,14 +1,14 @@
 {
   "name": "vjudge",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "CUP Online Judge vjudge module",
   "main": "daemon.js",
   "scripts": {
     "test": "node daemon.js",
-    "start": "forever start daemon.js",
-    "stop": "forever stop daemon.js",
-    "restart": "forever restart daemon.js",
-    "status": "forever status daemon.js"
+    "start": "pm2 start pm2.json",
+    "stop": "pm2 stop pm2.json",
+    "restart": "pm2 restart pm2.json",
+    "status": "pm2 show pm2.json"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
