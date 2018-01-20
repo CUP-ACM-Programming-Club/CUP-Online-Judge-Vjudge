@@ -6,11 +6,13 @@ const log4js = require('./logger');
 const logger = log4js.logger('cheese', 'info');
 const sleep = sleep_module.sleep;
 const query = require('./include/mysql_module');
+const eventEmitter = require("events").EventEmitter;
 log4js.connectLogger(logger, {level: 'info'});
 let account = require('./include/account');
 
-class Judger {
+class Judger extends eventEmitter {
 	constructor(config, account, proxy, oj_name) {
+		super();
 		this.proxy = proxy;
 		this.account = account;
 		this.config = config;
@@ -23,7 +25,7 @@ class Judger {
 	}
 
 	static valid_judge(err, response) {
-		if (err || response.text.match("wwwcache1.hdu.edu.cn") !== -1) {
+		if (err || response.text.indexOf("wwwcache1.hdu.edu.cn") !== -1) {
 			logger.warn(err || "Server cannot work");
 			return false;
 		}
@@ -33,9 +35,14 @@ class Judger {
 		}
 	}
 
-	record(rows) {
-		let accpeted = parseInt(rows[0]['accepted']) + 1;
-		query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
+	async record(rows) {
+		let accpeted = (parseInt(rows[0]['accepted']) + 1) || 1;
+		try {
+			query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
+		}
+		catch (e) {
+			this.record(rows);
+		}
 	}
 
 	async connect(err, response) {
@@ -43,20 +50,21 @@ class Judger {
 			logger.fatal(err);
 		}
 		try {
-
 			const sqlArr = this.ojmodule.format(response, this.sid);
 			const status = sqlArr[1];
 			this.result = sqlArr;
 			query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
 			if (status > 3) {
 				this.finished = true;
-				account[this.oj_name].push(this);
+				//account[this.oj_name].push(this);
+				this.emit("finish");
 				if (status === 4) {
 					query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()])
 						.then((rows) => {
 							this.record(rows);
-						})
-					;
+						}).catch((err) => {
+						this.error();
+					});
 				}
 			}
 			else {
@@ -84,6 +92,7 @@ class Judger {
 
 	async submitAction() {
 		await sleep(500);
+		//console.log(`PID:${this.pid} come to update`);
 		logger.info("PID:" + this.pid + " come to update");
 		this.updateStatus(this.pid, this.cookie);
 	};
@@ -113,9 +122,14 @@ class Judger {
 		}
 	}
 
-	error() {
-		query("update vjudge_solution set result='0' and runner_id='0' where solution_id=?", [this.sid]);
-		account[this.oj_name].push(this);
+	async error() {
+		try {
+			await query("update vjudge_solution set result='0' and runner_id='0' where solution_id=?", [this.sid]);
+		}
+		catch (e) {
+			this.error();
+		}
+		this.emit("finish");
 	}
 
 	getAccount() {
@@ -123,11 +137,14 @@ class Judger {
 	}
 
 	login() {
-		setTimeout(() => {
-			if (!this.finished) {
-				this.error();
-			}
-		}, 1000 * 60 * 2);
+		if (!this.setTimeout) {
+			setTimeout(() => {
+				this.setTimeout = true;
+				if (!this.finished) {
+					this.error();
+				}
+			}, 1000 * 60 * 2);
+		}
 		if (this.proxy.length > 4)
 			superagent.post(this.url.login_url).set(this.config['browser']).proxy(this.proxy).send(this.account).end((err, response) => {
 				this.loginAction(err, response, response.headers["set-cookie"]);
@@ -157,6 +174,7 @@ class Judger {
 		this.code = solution.code;
 		this.language = solution.language;
 		this.finished = false;
+		//console.log(solution);
 		logger.info(`run judger for sid:${this.sid}`);
 		//this.website_valid_check();
 		this.login();

@@ -16,7 +16,7 @@ class Vjudge_daemon {
 
 	loop_function() {
 		if (account[this.oj_name].length > 0) {
-			query("select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='" + this.oj_name.toUpperCase() + "')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id ")
+			query(`select * from (select * from vjudge_solution where runner_id='0' and result='0' and oj_name='${this.oj_name.toUpperCase()}')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id `)
 				.then((rows) => {
 					if (rows.length > 0) {
 						logger.info(rows.length + " code(s) in queue.Judging");
@@ -52,7 +52,11 @@ class Vjudge_daemon {
 		const len = account_config.length;
 		account[this.oj_name] = [];
 		for (let i = 0; i < len; ++i) {
-			account[this.oj_name].push(new Judger(this.config, account_config[i], this.proxy, this.oj_name))
+			let judger = new Judger(this.config, account_config[i], this.proxy, this.oj_name);
+			judger.on("finish", () => {
+				account[this.oj_name].push(judger);
+			});
+			account[this.oj_name].push(judger);
 		}
 		this.loop_function();
 		this.timer = setInterval(() => {
