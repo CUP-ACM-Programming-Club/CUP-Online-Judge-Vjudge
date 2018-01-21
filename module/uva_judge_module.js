@@ -18,7 +18,11 @@ class uva_judge_daemon extends Vjudge_daemon {
         const len = account_config.length;
         account[this.oj_name] = [];
         for (let i = 0; i < len; ++i) {
-            account[this.oj_name].push(new UVaJudger(this.config, account_config[i], this.proxy, this.oj_name))
+            let judger = new UVaJudger(this.config,account_config[i], this.proxy, this.oj_name);
+            judger.on("finish",()=>{
+               account[this.oj_name].push(judger);
+            });
+            account[this.oj_name].push(judger);
         }
         this.loop_function();
         this.timer = setInterval(() => {
