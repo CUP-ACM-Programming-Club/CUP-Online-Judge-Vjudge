@@ -6,14 +6,8 @@ const Juder_module = require('./judge_module');
 
 class Vjudge_daemon {
     constructor(config, oj_name) {
-        if (oj_name === "uva") {
-            this.daemon = new UVaJudger_module(config, oj_name);
-            this.daemon.start(config['proxy']);
-        }
-        else {
-            this.daemon = new Juder_module(config, oj_name);
-            this.daemon.start(config['proxy']);
-        }
+        this.daemon = oj_name === "uva" ? new UVaJudger_module(config, oj_name) : new Juder_module(config, oj_name);
+        this.daemon.start(config['proxy']);
     }
 
 }
