@@ -26,7 +26,7 @@ exports.format=function (response,sid) {
     status = problem_status[status];
     let time;
     let memory;
-    if (status != 4) {
+	if (status !== 4) {
         time = 0;
         memory = 0;
     }

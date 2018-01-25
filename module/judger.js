@@ -53,7 +53,13 @@ class Judger extends eventEmitter {
 			const sqlArr = this.ojmodule.format(response, this.sid);
 			const status = sqlArr[1];
 			this.result = sqlArr;
-			query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
+			query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr)
+				.then(resolve => {
+				}).catch(err => {
+				logger.fatal("error:\nsqlArr");
+				logger.fatal(sqlArr);
+				logger.fatal(err)
+			});
 			if (status > 3) {
 				this.finished = true;
 				//account[this.oj_name].push(this);
@@ -63,6 +69,8 @@ class Judger extends eventEmitter {
 						.then((rows) => {
 							this.record(rows);
 						}).catch((err) => {
+						logger.fatal("ERROR:select\n");
+						logger.fatal(err);
 						this.error();
 					});
 				}
