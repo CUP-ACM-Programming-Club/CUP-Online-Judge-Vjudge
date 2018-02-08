@@ -1,4 +1,4 @@
-const cheerio=require('cheerio');
+const cheerio = require('cheerio');
 const Base64_module = require('./Base64');
 const Base64 = new Base64_module();
 const log = console.log;
@@ -13,20 +13,20 @@ const problem_status = {
     "Time Limit Exceeded": 7,
     "Memory Limit Exceeded": 8,
     "Output Limit Exceeded": 9,
-    "Runtime Error":10,
+    "Runtime Error": 10,
     "Compile Error": 11
 };
 
-exports.format=function (response,sid) {
+exports.format = function (response, sid) {
     const $ = cheerio.load(response.text);
-    const result=$("table").eq(4).find('tr').eq(1).find('td');
+    const result = $("table").eq(4).find('tr').eq(1).find('td');
     //log($("table").eq(4).find('tr').html());
     const runner_id = result.eq(0).text();
     let status = result.eq(3).text();
     status = problem_status[status];
     let time;
     let memory;
-	if (status !== 4) {
+    if (status !== 4) {
         time = 0;
         memory = 0;
     }
@@ -40,22 +40,24 @@ exports.format=function (response,sid) {
     return [runner_id, status, time, memory, sid];
 };
 
-exports.post_format=function(pid,lang,code)
-{
+exports.post_format = function (pid, lang, code) {
     return {
         problem_id: pid,
         language: lang,
         source: Base64.encode(code),
-        encoded:1
+        encoded: 1
     };
 };
 
-exports.updateurl=function(pid,username)
-{
-    return "http://poj.org/status?problem_id="+pid+"&user_id="+username['user_id1']+"&result=&language=";
+exports.updateurl = function (pid, username) {
+    return "http://poj.org/status?problem_id=" + pid + "&user_id=" + username['user_id1'] + "&result=&language=";
 };
 
-exports.formatAccount=function(account)
-{
+exports.formatAccount = function (account) {
     return account['user_id1'];
+};
+
+exports.validSubmit = function (response) {
+    const redirects = response.redirects;
+    return Boolean(redirects && redirects.length > 0);
 };

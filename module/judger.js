@@ -107,11 +107,23 @@ class Judger extends eventEmitter {
 		const postmsg = this.ojmodule.post_format(pid, lang, code);
 		if (this.proxy.length > 4)
 			superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).send(postmsg).end((err, response) => {
-				this.submitAction(err, response)
+				if(this.ojmodule.validSubmit(response)) {
+					this.submitAction(err, response)
+				}
+				else{
+					query("UPDATE vjudge_solution set result=15 where solution_id=?",[this.sid]);
+					this.emit("finish");
+				}
 			});
 		else
 			superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).send(postmsg).end((err, response) => {
-				this.submitAction(err, response)
+				if(this.ojmodule.validSubmit(response)) {
+					this.submitAction(err, response)
+				}
+				else{
+					query("UPDATE vjudge_solution set result=15 where solution_id=?",[this.sid]);
+					this.emit("finish");
+				}
 			});
 	};
 
