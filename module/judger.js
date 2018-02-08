@@ -53,7 +53,13 @@ class Judger extends eventEmitter {
 			const sqlArr = this.ojmodule.format(response, this.sid);
 			const status = sqlArr[1];
 			this.result = sqlArr;
-			query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
+			query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr)
+				.then(resolve => {
+				}).catch(err => {
+				logger.fatal("error:\nsqlArr");
+				logger.fatal(sqlArr);
+				logger.fatal(err)
+			});
 			if (status > 3) {
 				this.finished = true;
 				this.emit("finish");
@@ -62,6 +68,8 @@ class Judger extends eventEmitter {
 						.then((rows) => {
 							this.record(rows);
 						}).catch((err) => {
+						logger.fatal("ERROR:select\n");
+						logger.fatal(err);
 						this.error();
 					});
 				}
@@ -134,7 +142,7 @@ class Judger extends eventEmitter {
 		return this.account;
 	}
 
-	login() {
+	login(cookie) {
 		if (!this.setTimeout) {
 			setTimeout(() => {
 				this.setTimeout = true;
@@ -144,12 +152,12 @@ class Judger extends eventEmitter {
 			}, 1000 * 60 * 2);
 		}
 		if (this.proxy.length > 4)
-			superagent.post(this.url.login_url).set(this.config['browser']).proxy(this.proxy).send(this.account).end((err, response) => {
-				this.loginAction(err, response, response.headers["set-cookie"]);
+			superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie",cookie||"").proxy(this.proxy).send(this.account).end((err, response) => {
+				this.loginAction(err, response, response.headers["set-cookie"]||cookie);
 			});
 		else
-			superagent.post(this.url.login_url).set(this.config['browser']).send(this.account).end((err, response) => {
-				this.loginAction(err, response, response.headers["set-cookie"]);
+			superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie",cookie||"").send(this.account).end((err, response) => {
+				this.loginAction(err, response, response.headers["set-cookie"]||cookie);
 			});
 	};
 
