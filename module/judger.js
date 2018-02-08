@@ -56,7 +56,6 @@ class Judger extends eventEmitter {
 			query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr);
 			if (status > 3) {
 				this.finished = true;
-				//account[this.oj_name].push(this);
 				this.emit("finish");
 				if (status === 4) {
 					query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()])
@@ -92,7 +91,6 @@ class Judger extends eventEmitter {
 
 	async submitAction() {
 		await sleep(500);
-		//console.log(`PID:${this.pid} come to update`);
 		logger.info("PID:" + this.pid + " come to update");
 		this.updateStatus(this.pid, this.cookie);
 	};
@@ -127,7 +125,7 @@ class Judger extends eventEmitter {
 			await query("update vjudge_solution set result='0' and runner_id='0' where solution_id=?", [this.sid]);
 		}
 		catch (e) {
-			this.error();
+			await this.error();
 		}
 		this.emit("finish");
 	}
