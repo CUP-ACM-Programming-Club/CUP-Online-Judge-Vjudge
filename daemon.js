@@ -5,6 +5,7 @@ const problem_crawler = require('./module/problem_crawler');
 const hdu_judger = new Vjudge(config, "hdu");
 const poj_judger = new Vjudge(config, "poj");
 const uva_judger = new Vjudge(config, "uva");
+const jsk_judger = new Vjudge(config, "jsk");
 const analyse = new submitAnalyse(config);
 const crawler = new problem_crawler(config, 1);
 //const updater = new problem_crawler(config);

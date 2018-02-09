@@ -10,15 +10,19 @@ class uva_judge_daemon extends Vjudge_daemon {
         super(config, oj_name);
     }
 
-    start(_proxy) {
+    async start(_proxy) {
         if (_proxy !== 'none')
             this.proxy = _proxy;
-        this.precheck();
+        await this.precheck();
         const account_config = this.config['login'][this.oj_name];
         const len = account_config.length;
         account[this.oj_name] = [];
         for (let i = 0; i < len; ++i) {
-            account[this.oj_name].push(new UVaJudger(this.config, account_config[i], this.proxy, this.oj_name))
+            let judger = new UVaJudger(this.config, account_config[i], this.proxy, this.oj_name);
+            judger.on("finish", () => {
+                account[this.oj_name].push(judger);
+            });
+            account[this.oj_name].push(judger);
         }
         this.loop_function();
         this.timer = setInterval(() => {
