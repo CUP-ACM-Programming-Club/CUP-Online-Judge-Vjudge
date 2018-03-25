@@ -108,7 +108,8 @@ class Judger extends eventEmitter {
                             .then(resolve => {
                             }).catch(err => {
                             logger.fatal("error:\nsqlArr");
-                            logger.fatal(sqlArr);
+                            console.log([JSON.parse(_response.text).data,status,this.sid]);
+                            console.log(receive_data);
                             logger.fatal(err)
                         });
                         if(status>3){
