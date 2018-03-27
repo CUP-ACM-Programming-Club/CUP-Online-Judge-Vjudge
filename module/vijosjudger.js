@@ -56,7 +56,6 @@ class Judger extends eventEmitter {
                     [submit_id,result.status,result.time,result.memory,that.sid])
                     .then(()=>{})
                     .catch((err)=>{
-                        console.log([submit_id,result.status,result.time,result.memory,that.sid]);
                         console.log(err);
                     });
                 if (result.status > 3) {
@@ -101,19 +100,14 @@ class Judger extends eventEmitter {
             }, 1000 * 60 * 2);
         }
         const url = this.ojmodule.formatSubmitUrl(this.pid);
-        console.log(`url:${url}`);
         this.proxy_check(agent.get(url))
             .end((err, response) => {
-                console.log(that.account.uname);
-                console.log(that.account);
                 if (response.text.indexOf(that.account.uname) === -1) {
-                    console.log("need login");
                     that.login();
                 }
                 else {
                     const $ = cheerio.load(response.text);
                     const csrf_token = $("input").eq(0).attr("value");
-                    console.log(`csrf_token:${csrf_token}`);
                     const submit_obj = {
                         lang: that.ojmodule.formatLanguage(this.language),
                         code: that.code,
@@ -124,7 +118,7 @@ class Judger extends eventEmitter {
                         .end((err, response) => {
                             sleep(500)
                                 .then(() => {
-                                    that.update(that.update(that.ojmodule.formatSubmitId(response.redirects[0])));
+                                    that.update(that.ojmodule.formatSubmitId(response.redirects[0]));
                                     return;
                                 })
                         });
@@ -137,14 +131,12 @@ class Judger extends eventEmitter {
     }
 
     run(solution) {
-        console.log("start judger");
         this.pid = solution.pid;
         this.sid = solution.sid;
         this.code = solution.code;
         this.language = solution.language;
         this.finished = false;
         logger.info(`run judger for sid:${this.sid}`);
-        console.log(`run judger for sid:${this.sid}`);
         this.submit();
     }
 }

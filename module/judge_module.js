@@ -35,11 +35,9 @@ class Vjudge_daemon {
                                 language: rows[i]['language'],
                                 code: rows[i]['source']
                             };
-                            //console.log(solution);
                             if (account[this.oj_name].length > 0) {
                                 logger.info(`catch using account ${account[this.oj_name]}`);
                                 const cur_judger = account[this.oj_name].shift();
-                                //console.log(cur_judger);
                                 query("update vjudge_solution set result=?,judger=? where solution_id=?", [14, this.ojmodule.formatAccount(cur_judger.getAccount()), rows[i]['solution_id']]);
                                 cur_judger.run(solution);
                             }

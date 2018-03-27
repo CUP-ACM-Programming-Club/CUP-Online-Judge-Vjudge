@@ -48,9 +48,6 @@ exports.formatResult = (content,submit_id) => {
     let status = result.eq(0).text().trim();
     let time = result.eq(3).text().trim();
     let memory = result.eq(4).text().trim();
-    console.log(`status:${status}`);
-    console.log(`time:${time}`);
-    console.log(`memory:${memory}`);
     status = parseStatus(status);
     if(memory.indexOf("Bytes") !== -1)
     {

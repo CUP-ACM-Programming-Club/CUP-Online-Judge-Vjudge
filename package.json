@@ -1,6 +1,6 @@
 {
   "name": "vjudge",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "CUP Online Judge vjudge module",
   "main": "daemon.js",
   "scripts": {
