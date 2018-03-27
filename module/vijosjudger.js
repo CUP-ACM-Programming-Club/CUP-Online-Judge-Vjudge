@@ -26,6 +26,7 @@ class Judger extends eventEmitter {
     }
 
     proxy_check(agent_module){
+        agent_module = agent_module.set(this.config.browser);
         if(this.proxy.length>4){
             return agent_module.proxy(this.proxy);
         }
@@ -34,27 +35,53 @@ class Judger extends eventEmitter {
         }
     }
 
+    update() {
+
+    }
+
     login(){
-        if(!this.setTimeout) {
-            setTimeout(()=>{
-                this.setTimeout = true;
-                if(!this.finished) {
-                    this.error()
-                }
-            },1000*60*2);
-        }
         this.proxy_check(agent)
             .post(this.url.login_url)
-            .set(this.config.browser)
             .end((err,response)=>{
-
+                this.submit();
             });
-        if(this.proxy.length > 4) {
-            agent.post(this.url.login_url)
-                .set(this.config.browser)
-                .proxy(this.proxy)
+    }
 
-        }
+    submit() {
+	    if(!this.setTimeout) {
+		    setTimeout(()=>{
+			    this.setTimeout = true;
+			    if(!this.finished) {
+				    this.error()
+			    }
+		    },1000*60*2);
+	    }
+	    const url = this.ojmodule.formatSubmitUrl(this.pid);
+        this.proxy_check(agent)
+            .get(url)
+            .end((err,response)=>{
+                if(response.text.indexOf(this.account.uname) === -1){
+                    this.login();
+                }
+                else{
+                    const $ = cheerio.load(response.text);
+                    const csrf_token = $("input").eq(0).attr("value");
+                    const submit_obj = {
+                      lang:this.ojmodule.formatLanguage(this.language),
+                      code:this.code,
+                      csrf_token:csrf_token
+                    };
+                    this.proxy_check(agent)
+                        .post(url)
+                        .send(submit_obj)
+                        .end((err,response)=>{
+                            sleep(500)
+                                .then(()=>{
+
+                                })
+                        });
+                }
+            })
     }
 
     run(solution) {
