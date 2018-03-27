@@ -1,5 +1,6 @@
 const superagent = require("superagent");
 require("superagent-proxy")(superagent);
+const cheerio = require("cheerio");
 const agent = superagent.agent();
 const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
@@ -17,7 +18,7 @@ class Judger extends eventEmitter {
         this.proxy = proxy;
         this.account = account;
         this.config = config;
-        this.url = config.url.oj_name;
+        this.url = config.url[oj_name.toLowerCase()];
         this.oj_name = oj_name;
         this.cookie = "";
         this.ojmodule = require(`./include/${this.oj_name}_module`);
@@ -25,75 +26,131 @@ class Judger extends eventEmitter {
         logger.info(`constructed ${this.oj_name} Judger`);
     }
 
-    proxy_check(agent_module){
+    proxy_check(agent_module) {
         agent_module = agent_module.set(this.config.browser);
-        if(this.proxy.length>4){
+        if (this.proxy.length > 4) {
             return agent_module.proxy(this.proxy);
         }
-        else{
+        else {
             return agent_module;
         }
     }
 
-    update() {
-
+    record(rows) {
+        let accepted = (parseInt(rows[0]['accepted']) + 1) || 1;
+        try {
+            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accepted, this.pid, this.oj_name.toUpperCase()]);
+        }
+        catch (e) {
+            this.record(rows);
+        }
     }
 
-    login(){
-        this.proxy_check(agent)
-            .post(this.url.login_url)
-            .end((err,response)=>{
-                this.submit();
+    update(submit_id) {
+        const that = this;
+        this.proxy_check(agent.get(that.ojmodule.formatStatusUrl(that.pid, this.account.uname)))
+            .end((err, response) => {
+                const result = that.ojmodule.formatResult(response.text, submit_id);
+                query(`update vjudge_solution set runner_id = ?,
+                result = ?,time = ?,memory = ? where solution_id = ?`,
+                    [submit_id,result.status,result.time,result.memory,that.sid])
+                    .then(()=>{})
+                    .catch((err)=>{
+                        console.log([submit_id,result.status,result.time,result.memory,that.sid]);
+                        console.log(err);
+                    });
+                if (result.status > 3) {
+                    that.finished = true;
+                    that.emit("finish");
+                    if (result.status === 4) {
+                        query(`select accepted from vjudge_problem 
+                        where problem_id = ? and source = ?`,
+                            [this.pid, this.oj_name.toUpperCase()])
+                            .then((rows) => {
+                                that.record(rows);
+                            })
+                            .catch((err) => {
+                                logger.fatal(err);
+                            })
+                    }
+                }
+                else {
+                    sleep(500)
+                        .then(that.update(that.ojmodule.formatSubmitId(submit_id[0])));
+                }
+            })
+    }
+
+    login() {
+        const that = this;
+        this.proxy_check(agent.post(this.url.login_url))
+            .send(this.account)
+            .end(() => {
+                that.submit();
             });
     }
 
     submit() {
-	    if(!this.setTimeout) {
-		    setTimeout(()=>{
-			    this.setTimeout = true;
-			    if(!this.finished) {
-				    this.error()
-			    }
-		    },1000*60*2);
-	    }
-	    const url = this.ojmodule.formatSubmitUrl(this.pid);
-        this.proxy_check(agent)
-            .get(url)
-            .end((err,response)=>{
-                if(response.text.indexOf(this.account.uname) === -1){
-                    this.login();
+        const that = this;
+        if (!this.setTimeout) {
+            setTimeout(() => {
+                that.setTimeout = true;
+                if (!that.finished) {
+                    that.error()
                 }
-                else{
+            }, 1000 * 60 * 2);
+        }
+        const url = this.ojmodule.formatSubmitUrl(this.pid);
+        console.log(`url:${url}`);
+        this.proxy_check(agent.get(url))
+            .end((err, response) => {
+                console.log(that.account.uname);
+                console.log(that.account);
+                if (response.text.indexOf(that.account.uname) === -1) {
+                    console.log("need login");
+                    that.login();
+                }
+                else {
                     const $ = cheerio.load(response.text);
                     const csrf_token = $("input").eq(0).attr("value");
+                    console.log(`csrf_token:${csrf_token}`);
                     const submit_obj = {
-                      lang:this.ojmodule.formatLanguage(this.language),
-                      code:this.code,
-                      csrf_token:csrf_token
+                        lang: that.ojmodule.formatLanguage(this.language),
+                        code: that.code,
+                        csrf_token: csrf_token
                     };
-                    this.proxy_check(agent)
-                        .post(url)
+                    that.proxy_check(agent.post(url))
                         .send(submit_obj)
-                        .end((err,response)=>{
+                        .end((err, response) => {
                             sleep(500)
-                                .then(()=>{
-
+                                .then(() => {
+                                    that.update(that.update(that.ojmodule.formatSubmitId(response.redirects[0])));
+                                    return;
                                 })
                         });
                 }
             })
     }
 
+    getAccount() {
+        return this.account;
+    }
+
     run(solution) {
+        console.log("start judger");
         this.pid = solution.pid;
         this.sid = solution.sid;
         this.code = solution.code;
         this.language = solution.language;
         this.finished = false;
         logger.info(`run judger for sid:${this.sid}`);
-        this.login();
+        console.log(`run judger for sid:${this.sid}`);
+        this.submit();
     }
 }
+
+module.exports = Judger;
+
 /*
 const user = {
     uname: "",

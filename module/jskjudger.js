@@ -39,9 +39,9 @@ class Judger extends eventEmitter {
     }
 
     async record(rows) {
-        let accpeted = (parseInt(rows[0]['accepted']) + 1) || 1;
+        let accepted = (parseInt(rows[0]['accepted']) + 1) || 1;
         try {
-            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
+            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accepted, this.pid, this.oj_name.toUpperCase()]);
         }
         catch (e) {
             this.record(rows);
