@@ -1,7 +1,6 @@
 const superagent = require("superagent");
 require("superagent-proxy")(superagent);
 const cheerio = require("cheerio");
-const agent = superagent.agent();
 const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
 const log4js = require('./logger');
@@ -28,7 +27,7 @@ class Judger extends vijosJudger {
 
 	update(submit_id) {
 		const that = this;
-		this.proxy_check(agent.get(that.ojmodule.formatStatusUrl(that.originalProblemId, this.account.uname)))
+		this.proxy_check(this.agent.get(that.ojmodule.formatStatusUrl(that.originalProblemId, this.account.uname)))
 			.end((err, response) => {
 				if(!err){
 					clearTimeout(that.setTimeout);
@@ -80,7 +79,7 @@ class Judger extends vijosJudger {
 			}, 1000 * 60 * 2);
 		}
 		const url = this.ojmodule.formatSubmitUrl(this.originalProblemId);
-		this.proxy_check(agent.get(url))
+		this.proxy_check(this.agent.get(url))
 			.end((err, response) => {
 				if (response.text.indexOf(that.account.uname) === -1) {
 					that.login();
@@ -93,7 +92,7 @@ class Judger extends vijosJudger {
 						code: that.code,
 						csrf_token: csrf_token
 					};
-					that.proxy_check(agent.post(url))
+					that.proxy_check(this.agent.post(url))
 						.send(submit_obj)
 						.end((err, response) => {
 							sleep(500)

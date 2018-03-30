@@ -27,14 +27,14 @@ exports.formatLanguage = (lang) => {
 };
 
 exports.formatSubmitUrl = (pid) => {
-    return isNaN(parseInt(pid)) ?
+    return isNaN(pid) ?
         `https://vijos.org/d/newbzoj/p/${pid}/submit`
         :
         `https://vijos.org/p/${pid}/submit`
 };
 
 exports.formatStatusUrl = (problem_id,user_id) => {
-    return isNaN(parseInt(problem_id)) ?
+    return isNaN(problem_id) ?
     `https://vijos.org/d/newbzoj/records?uid_or_name=${user_id}&pid=${problem_id}&tid=`
     :
     `https://vijos.org/records?uid_or_name=${user_id}&pid=${problem_id}&tid=`;

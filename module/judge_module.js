@@ -11,7 +11,8 @@ const judger_list={
     poj:"",
     uva:"uva",
     jsk:"jsk",
-    vijos:"vijos"
+    vijos:"vijos",
+    bzoj:"bzoj"
 };
 class Vjudge_daemon {
     constructor(config, oj_name) {
