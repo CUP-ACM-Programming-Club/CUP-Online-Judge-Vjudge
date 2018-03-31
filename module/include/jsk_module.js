@@ -9,6 +9,7 @@ const problem_status = {
     "TL": 7,
     "ML": 8,
     "OL": 9,
+    "RE_SEGV":10,
     "CE": 11
 };
 

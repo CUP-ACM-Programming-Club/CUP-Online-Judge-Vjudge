@@ -39,9 +39,9 @@ class Judger extends eventEmitter {
     }
 
     async record(rows) {
-        let accpeted = (parseInt(rows[0]['accepted']) + 1) || 1;
+        let accepted = (parseInt(rows[0]['accepted']) + 1) || 1;
         try {
-            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
+            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accepted, this.pid, this.oj_name.toUpperCase()]);
         }
         catch (e) {
             this.record(rows);
@@ -101,6 +101,7 @@ class Judger extends eventEmitter {
                     .send(post_id)
                     .set("X-XSRF-TOKEN",this.xsrf)
                     .end((err,response)=>{
+                        this.ticktack("updated");
                         this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                         const receive_data = JSON.parse(response.text);
                         const status = this.ojmodule.format(receive_data);
@@ -108,7 +109,8 @@ class Judger extends eventEmitter {
                             .then(resolve => {
                             }).catch(err => {
                             logger.fatal("error:\nsqlArr");
-                            logger.fatal(sqlArr);
+                            console.log([JSON.parse(_response.text).data,status,this.sid]);
+                            console.log(receive_data);
                             logger.fatal(err)
                         });
                         if(status>3){
@@ -126,6 +128,7 @@ class Judger extends eventEmitter {
                             }
                         }
                         else{
+                            this.ticktack("Update again ");
                             this.updateStatus(pid,_response);
                         }
                         resolve();
@@ -174,12 +177,24 @@ class Judger extends eventEmitter {
     };
 
     async submitAction(response) {
-        await sleep(500);
+        this.ticktack("Submited");
         logger.info("PID:" + this.pid + " come to update");
         this.updateStatus(this.pid,response);
     };
 
+    ticktack(message) {
+        const nowTime = new Date();
+        console.log(`${message||""} Time:${nowTime - this.timetick}`);
+        this.timetick = nowTime;
+    }
+
+    startTimetick() {
+        this.timetick = new Date();
+        console.log("Start ticktack");
+    }
+
     submitAnswer(pid, lang, code) {
+        this.ticktack("submit");
         const postmsg = this.ojmodule.post_format(pid, lang, code);
         if (this.proxy.length > 4) {
             agent.post(this.url.post_url)
@@ -205,6 +220,7 @@ class Judger extends eventEmitter {
     };
 
     loginAction(err, response) {
+	    this.ticktack("loginaction");
         if (err) {
             logger.fatal(err);
         }
@@ -237,6 +253,7 @@ class Judger extends eventEmitter {
     }
 
     login() {
+        this.ticktack("login")
         if (!this.setTimeout) {
             setTimeout(() => {
                 this.setTimeout = true;
@@ -275,6 +292,7 @@ class Judger extends eventEmitter {
                 .set("X-XSRF-TOKEN", this.xsrf)
                 .proxy(this.proxy)
                 .end((err, response) => {
+                    this.ticktack("Check login");
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                     if (response.text.indexOf("我的主页") !== -1) {
                         this.submitAnswer(this.pid, this.language, this.code);
@@ -301,7 +319,8 @@ class Judger extends eventEmitter {
     }
 
     prelogin(){
-        if(this.proxy.length>4){
+        this.ticktack("prelogin");
+        if(this.proxy.length > 4){
             agent.get(this.url.url)
                 .proxy(this.proxy)
                 .set("User-Agent",this.config["useragent"])
@@ -328,6 +347,7 @@ class Judger extends eventEmitter {
         this.language = solution.language;
         this.finished = false;
         logger.info(`run judger for sid:${this.sid}`);
+        this.startTimetick();
         if (this.xsrf && this.xsrf.length > 0) {
             this.check_logined();
         }
