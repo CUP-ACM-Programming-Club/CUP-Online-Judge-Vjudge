@@ -11,13 +11,15 @@ const judger_list={
     poj:"",
     uva:"uva",
     jsk:"jsk",
-    vijos:"vijos"
+    vijos:"vijos",
+    bzoj:"bzoj"
 };
 class Vjudge_daemon {
     constructor(config, oj_name) {
         this.config = config;
         this.oj_name = oj_name;
         this.ojmodule = require("./include/" + oj_name + "_module");
+        console.log(oj_name);
         this.judger = require(`./${judger_list[oj_name]}judger`);
     }
 
@@ -69,6 +71,9 @@ class Vjudge_daemon {
             let judger = new this.judger(this.config, account_config[i], this.proxy, this.oj_name);
             judger.on("finish", () => {
                 account[this.oj_name].push(judger);
+                if(judger.setTimeout) {
+                    clearTimeout(judger.setTimeout);
+                }
             });
             account[this.oj_name].push(judger);
         }
