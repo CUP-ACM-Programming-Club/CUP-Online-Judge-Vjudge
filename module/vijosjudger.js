@@ -10,7 +10,6 @@ const sleep = sleep_module.sleep;
 const query = require('./include/mysql_module');
 const eventEmitter = require("events").EventEmitter;
 log4js.connectLogger(logger, {level: 'info'});
-let account = require('./include/account')
 
 class Judger extends eventEmitter {
     constructor(config, account, proxy, oj_name) {
@@ -18,8 +17,9 @@ class Judger extends eventEmitter {
         this.proxy = proxy;
         this.account = account;
         this.config = config;
-        this.url = config.url[oj_name.toLowerCase()];
+        this.url = config.url["vijos"];
         this.oj_name = oj_name;
+        this.agent = agent;
         this.cookie = "";
         this.ojmodule = require(`./include/${this.oj_name}_module`);
         this.finished = false;
@@ -48,7 +48,7 @@ class Judger extends eventEmitter {
 
     update(submit_id) {
         const that = this;
-        this.proxy_check(agent.get(that.ojmodule.formatStatusUrl(that.pid, this.account.uname)))
+        this.proxy_check(this.agent.get(that.ojmodule.formatStatusUrl(that.pid, this.account.uname)))
             .end((err, response) => {
                 if(!err){
                     clearTimeout(that.setTimeout);
@@ -91,7 +91,7 @@ class Judger extends eventEmitter {
 
     login() {
         const that = this;
-        this.proxy_check(agent.post(this.url.login_url))
+        this.proxy_check(this.agent.post(this.url.login_url))
             .send(this.account)
             .end(() => {
                 that.submit();
@@ -109,7 +109,7 @@ class Judger extends eventEmitter {
             }, 1000 * 60 * 2);
         }
         const url = this.ojmodule.formatSubmitUrl(this.pid);
-        this.proxy_check(agent.get(url))
+        this.proxy_check(this.agent.get(url))
             .end((err, response) => {
                 if (response.text.indexOf(that.account.uname) === -1) {
                     that.login();
@@ -122,7 +122,7 @@ class Judger extends eventEmitter {
                         code: that.code,
                         csrf_token: csrf_token
                     };
-                    that.proxy_check(agent.post(url))
+                    that.proxy_check(this.agent.post(url))
                         .send(submit_obj)
                         .end((err, response) => {
                             sleep(500)
@@ -158,7 +158,7 @@ const user = {
     password: ""
 };
 const config = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"
+    "User-this.agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"
     ,
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
 };
@@ -170,7 +170,7 @@ const submit_data = {
 
 (async () => {
     await new Promise((resolve => {
-        agent.post("https://vijos.org/d/newbzoj/login")
+        this.agent.post("https://vijos.org/d/newbzoj/login")
             .send(user)
             .set(config)
             .end((err, response) => {
@@ -178,7 +178,7 @@ const submit_data = {
             });
     }));
     const response = await new Promise(resolve => {
-        agent.get("https://vijos.org/d/newbzoj/p/590c8d0dd3d8a13210993708/submit")
+        this.agent.get("https://vijos.org/d/newbzoj/p/590c8d0dd3d8a13210993708/submit")
             .set(config)
             .end((err, response) => {
                 resolve(response);
@@ -189,7 +189,7 @@ const submit_data = {
     //console.log($("input").eq(0).attr("value"));
     //console.log(response.text);
     await new Promise(resolve => {
-        agent.post("https://vijos.org/d/newbzoj/p/590c8d0dd3d8a13210993708/submit")
+        this.agent.post("https://vijos.org/d/newbzoj/p/590c8d0dd3d8a13210993708/submit")
             .set(config)
             .send(submit_data)
             .end((err, response) => {
