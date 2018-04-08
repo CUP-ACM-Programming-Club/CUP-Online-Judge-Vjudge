@@ -9,6 +9,7 @@ const logger = log4js.logger('cheese', 'info');
 const sleep = sleep_module.sleep;
 const query = require('./include/mysql_module');
 const eventEmitter = require("events").EventEmitter;
+const updater = require('./include/userupdater');
 log4js.connectLogger(logger, {level: 'info'});
 
 class Judger extends eventEmitter {
@@ -50,7 +51,7 @@ class Judger extends eventEmitter {
         const that = this;
         this.proxy_check(this.agent.get(that.ojmodule.formatStatusUrl(that.pid, this.account.uname)))
             .end((err, response) => {
-                if(!err){
+                if (!err) {
                     clearTimeout(that.setTimeout);
                     setTimeout(() => {
                         that.setTimeout = true;
@@ -62,12 +63,14 @@ class Judger extends eventEmitter {
                 const result = that.ojmodule.formatResult(response.text, submit_id);
                 query(`update vjudge_solution set runner_id = ?,
                 result = ?,time = ?,memory = ? where solution_id = ?`,
-                    [submit_id,result.status,result.time,result.memory,that.sid])
-                    .then(()=>{})
-                    .catch((err)=>{
+                    [submit_id, result.status, result.time, result.memory, that.sid])
+                    .then(() => {
+                    })
+                    .catch((err) => {
                         console.log(err);
                     });
                 if (result.status > 3) {
+                    updater(that.sid);
                     that.finished = true;
                     that.emit("finish");
                     if (result.status === 4) {

@@ -10,6 +10,7 @@ const query = require('./include/mysql_module');
 const eventEmitter = require("events").EventEmitter;
 log4js.connectLogger(logger, {level: 'info'});
 let account = require('./include/account');
+const updater = require('./include/userupdater');
 const md5 = require("md5");
 
 class Judger extends eventEmitter {
@@ -64,6 +65,7 @@ class Judger extends eventEmitter {
                 logger.fatal(err)
             });
             if (status > 3) {
+                updater(this.sid);
                 this.finished = true;
                 this.emit("finish");
                 if (status === 4) {
@@ -89,31 +91,31 @@ class Judger extends eventEmitter {
         }
     };
 
-    async updateStatus(pid,_response) {
+    async updateStatus(pid, _response) {
         const post_id = {
-            id:pid
+            id: pid
         };
-        if(this.proxy.length>4){
+        if (this.proxy.length > 4) {
             await new Promise((resolve => {
                 agent.post(this.ojmodule.updateurl(_response))
                     .proxy(this.proxy)
-                    .set("User-Agent",this.config["useragent"])
+                    .set("User-Agent", this.config["useragent"])
                     .send(post_id)
-                    .set("X-XSRF-TOKEN",this.xsrf)
-                    .end((err,response)=>{
+                    .set("X-XSRF-TOKEN", this.xsrf)
+                    .end((err, response) => {
                         this.ticktack("updated");
                         this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                         const receive_data = JSON.parse(response.text);
                         const status = this.ojmodule.format(receive_data);
-                        query("update vjudge_solution set runner_id=?,result=?,time=0,memory=0 where solution_id=?", [JSON.parse(_response.text).data,status,this.sid])
+                        query("update vjudge_solution set runner_id=?,result=?,time=0,memory=0 where solution_id=?", [JSON.parse(_response.text).data, status, this.sid])
                             .then(resolve => {
                             }).catch(err => {
                             logger.fatal("error:\nsqlArr");
-                            console.log([JSON.parse(_response.text).data,status,this.sid]);
+                            console.log([JSON.parse(_response.text).data, status, this.sid]);
                             console.log(receive_data);
                             logger.fatal(err)
                         });
-                        if(status>3){
+                        if (status > 3) {
                             this.finished = true;
                             this.emit("finish");
                             if (status === 4) {
@@ -127,33 +129,33 @@ class Judger extends eventEmitter {
                                 });
                             }
                         }
-                        else{
+                        else {
                             this.ticktack("Update again ");
-                            this.updateStatus(pid,_response);
+                            this.updateStatus(pid, _response);
                         }
                         resolve();
                     })
             }));
 
         }
-        else{
+        else {
             await new Promise((resolve => {
                 agent.post(this.ojmodule.updateurl(_response))
-                    .set("User-Agent",this.config["useragent"])
+                    .set("User-Agent", this.config["useragent"])
                     .send(post_id)
-                    .set("X-XSRF-TOKEN",this.xsrf)
-                    .end((err,response)=>{
+                    .set("X-XSRF-TOKEN", this.xsrf)
+                    .end((err, response) => {
                         this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                         const receive_data = JSON.parse(response.text);
                         const status = this.ojmodule.format(receive_data);
-                        query("update vjudge_solution set runner_id=?,result=?,time=0,memory=0 where solution_id=?", [JSON.parse(_response.text).data,status,this.sid])
+                        query("update vjudge_solution set runner_id=?,result=?,time=0,memory=0 where solution_id=?", [JSON.parse(_response.text).data, status, this.sid])
                             .then(resolve => {
                             }).catch(err => {
                             logger.fatal("error:\nsqlArr");
                             logger.fatal(sqlArr);
                             logger.fatal(err)
                         });
-                        if(status>3){
+                        if (status > 3) {
                             this.finished = true;
                             this.emit("finish");
                             if (status === 4) {
@@ -167,8 +169,8 @@ class Judger extends eventEmitter {
                                 });
                             }
                         }
-                        else{
-                            this.updateStatus(pid,_response);
+                        else {
+                            this.updateStatus(pid, _response);
                         }
                         resolve();
                     })
@@ -179,12 +181,12 @@ class Judger extends eventEmitter {
     async submitAction(response) {
         this.ticktack("Submited");
         logger.info("PID:" + this.pid + " come to update");
-        this.updateStatus(this.pid,response);
+        this.updateStatus(this.pid, response);
     };
 
     ticktack(message) {
         const nowTime = new Date();
-        console.log(`${message||""} Time:${nowTime - this.timetick}`);
+        console.log(`${message || ""} Time:${nowTime - this.timetick}`);
         this.timetick = nowTime;
     }
 
@@ -198,10 +200,10 @@ class Judger extends eventEmitter {
         const postmsg = this.ojmodule.post_format(pid, lang, code);
         if (this.proxy.length > 4) {
             agent.post(this.url.post_url)
-                .set("User-Agent",this.config["useragent"])
+                .set("User-Agent", this.config["useragent"])
                 .proxy(this.proxy)
                 .send(postmsg)
-                .set("X-XSRF-TOKEN",this.xsrf)
+                .set("X-XSRF-TOKEN", this.xsrf)
                 .end((err, response) => {
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                     this.submitAction(response);
@@ -209,9 +211,9 @@ class Judger extends eventEmitter {
         }
         else {
             agent.post(this.url.post_url)
-                .set("User-Agent",this.config["useragent"])
+                .set("User-Agent", this.config["useragent"])
                 .send(postmsg)
-                .set("X-XSRF-TOKEN",this.xsrf)
+                .set("X-XSRF-TOKEN", this.xsrf)
                 .end((err, response) => {
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                     this.submitAction(response);
@@ -220,7 +222,7 @@ class Judger extends eventEmitter {
     };
 
     loginAction(err, response) {
-	    this.ticktack("loginaction");
+        this.ticktack("loginaction");
         if (err) {
             logger.fatal(err);
         }
@@ -264,9 +266,9 @@ class Judger extends eventEmitter {
         }
         if (this.proxy.length > 4) {
             agent.post(this.url.login_url)
-                .set("User-Agent",this.config["useragent"])
+                .set("User-Agent", this.config["useragent"])
                 .proxy(this.proxy)
-                .set("X-XSRF-TOKEN",this.xsrf)
+                .set("X-XSRF-TOKEN", this.xsrf)
                 .send(this.account)
                 .end((err, response) => {
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
@@ -275,9 +277,9 @@ class Judger extends eventEmitter {
         }
         else {
             agent.post(this.url.login_url)
-                .set("User-Agent",this.config["useragent"])
+                .set("User-Agent", this.config["useragent"])
                 .send(this.account)
-                .set("X-XSRF-TOKEN",this.xsrf)
+                .set("X-XSRF-TOKEN", this.xsrf)
                 .end((err, response) => {
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                     this.loginAction(err, response);
@@ -288,7 +290,7 @@ class Judger extends eventEmitter {
     async check_logined() {
         if (this.proxy.length > 4) {
             agent.get(this.url.url)
-                .set("User-Agent",this.config["useragent"])
+                .set("User-Agent", this.config["useragent"])
                 .set("X-XSRF-TOKEN", this.xsrf)
                 .proxy(this.proxy)
                 .end((err, response) => {
@@ -304,7 +306,7 @@ class Judger extends eventEmitter {
         }
         else {
             agent.get(this.url.url)
-                .set("User-Agent",this.config["useragent"])
+                .set("User-Agent", this.config["useragent"])
                 .set("X-XSRF-TOKEN", this.xsrf)
                 .end((err, response) => {
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
@@ -318,21 +320,21 @@ class Judger extends eventEmitter {
         }
     }
 
-    prelogin(){
+    prelogin() {
         this.ticktack("prelogin");
-        if(this.proxy.length > 4){
+        if (this.proxy.length > 4) {
             agent.get(this.url.url)
                 .proxy(this.proxy)
-                .set("User-Agent",this.config["useragent"])
-                .end((err,response)=>{
+                .set("User-Agent", this.config["useragent"])
+                .end((err, response) => {
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                     this.login();
                 })
         }
-        else{
+        else {
             agent.get(this.url.url)
-                .set("User-Agent",this.config["useragent"])
-                .end((err,response)=>{
+                .set("User-Agent", this.config["useragent"])
+                .end((err, response) => {
                     this.xsrf = this.ojmodule.findxsrf(response.headers["set-cookie"]) || this.xsrf;
                     this.login();
                 })
