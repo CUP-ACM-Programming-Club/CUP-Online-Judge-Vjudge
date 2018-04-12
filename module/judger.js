@@ -49,6 +49,7 @@ class Judger extends eventEmitter {
 		if (err) {
 			logger.fatal(err);
 		}
+		this.timetick();
 		try {
 			const sqlArr = this.ojmodule.format(response, this.sid);
 			const status = sqlArr[1];
@@ -62,6 +63,7 @@ class Judger extends eventEmitter {
 			});
 			if (status > 3) {
 				this.finished = true;
+				this.cleanTimetick();
 				this.emit("finish");
 				if (status === 4) {
 					query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()])
@@ -107,21 +109,22 @@ class Judger extends eventEmitter {
 		const postmsg = this.ojmodule.post_format(pid, lang, code);
 		if (this.proxy.length > 4)
 			superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).send(postmsg).end((err, response) => {
-				if(this.ojmodule.validSubmit(response)) {
+				if (this.ojmodule.validSubmit(response)) {
+					this.timetick();
 					this.submitAction(err, response)
 				}
-				else{
-					query("UPDATE vjudge_solution set result=15 where solution_id=?",[this.sid]);
+				else {
+					query("UPDATE vjudge_solution set result=15 where solution_id=?", [this.sid]);
 					this.emit("finish");
 				}
 			});
 		else
 			superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).send(postmsg).end((err, response) => {
-				if(this.ojmodule.validSubmit(response)) {
+				if (this.ojmodule.validSubmit(response)) {
 					this.submitAction(err, response)
 				}
-				else{
-					query("UPDATE vjudge_solution set result=15 where solution_id=?",[this.sid]);
+				else {
+					query("UPDATE vjudge_solution set result=15 where solution_id=?", [this.sid]);
 					this.emit("finish");
 				}
 			});
@@ -154,22 +157,36 @@ class Judger extends eventEmitter {
 		return this.account;
 	}
 
-	login(cookie) {
-		if (!this.setTimeout) {
-			setTimeout(() => {
-				this.setTimeout = true;
-				if (!this.finished) {
-					this.error();
-				}
-			}, 1000 * 60 * 2);
+	cleanTimetick() {
+		if (this.timer) {
+			clearTimeout(this.timer);
 		}
+	}
+
+	timetick() {
+		if (!this.setTimeout) {
+		}
+		else {
+			if (this.timer) {
+				clearTimeout(this.timer);
+			}
+		}
+		this.timer = setTimeout(() => {
+			this.setTimeout = true;
+			if (!this.finished) {
+				this.error();
+			}
+		}, 1000 * 60 * 2);
+	}
+
+	login(cookie) {
 		if (this.proxy.length > 4)
-			superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie",cookie||"").proxy(this.proxy).send(this.account).end((err, response) => {
-				this.loginAction(err, response, response.headers["set-cookie"]||cookie);
+			superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie", cookie || "").proxy(this.proxy).send(this.account).end((err, response) => {
+				this.loginAction(err, response, response.headers["set-cookie"] || cookie);
 			});
 		else
-			superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie",cookie||"").send(this.account).end((err, response) => {
-				this.loginAction(err, response, response.headers["set-cookie"]||cookie);
+			superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie", cookie || "").send(this.account).end((err, response) => {
+				this.loginAction(err, response, response.headers["set-cookie"] || cookie);
 			});
 	};
 
