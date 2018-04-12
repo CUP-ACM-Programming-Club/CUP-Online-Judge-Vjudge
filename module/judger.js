@@ -63,6 +63,7 @@ class Judger extends eventEmitter {
                 logger.fatal(err)
             });
             if (status > 3) {
+            	this.cleanTimeout();
                 updater(this.sid);
                 this.finished = true;
                 this.emit("finish");
@@ -156,6 +157,12 @@ class Judger extends eventEmitter {
 
     getAccount() {
         return this.account;
+    }
+
+    cleanTimeout() {
+    	if(this.setTimeout) {
+    		clearTimeout(this.setTimeout);
+	    }
     }
 
     updateTimeout() {
