@@ -9,6 +9,7 @@ const query = require('./include/mysql_module');
 const eventEmitter = require("events").EventEmitter;
 log4js.connectLogger(logger, {level: 'info'});
 let account = require('./include/account');
+const updater = require('./include/userupdater');
 
 class Judger extends eventEmitter {
     constructor(config, account, proxy, oj_name) {
@@ -62,6 +63,8 @@ class Judger extends eventEmitter {
                 logger.fatal(err)
             });
             if (status > 3) {
+            	this.cleanTimeout();
+                updater(this.sid);
                 this.finished = true;
                 this.emit("finish");
                 if (status === 4) {
@@ -154,6 +157,12 @@ class Judger extends eventEmitter {
 
     getAccount() {
         return this.account;
+    }
+
+    cleanTimeout() {
+    	if(this.setTimeout) {
+    		clearTimeout(this.setTimeout);
+	    }
     }
 
     updateTimeout() {

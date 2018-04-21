@@ -54,6 +54,7 @@ class Vjudge_daemon {
     }
 
     async precheck() {
+        // TODO:automatically crawling successful submission's result
         await query("update vjudge_solution set result=0  where (result=14 or result < 4) and oj_name='" + this.oj_name.toUpperCase() + "'");
     }
 

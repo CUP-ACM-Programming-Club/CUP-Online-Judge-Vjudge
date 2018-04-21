@@ -192,6 +192,10 @@ module.exports = function (accountArr, config) {
 			plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
 			for (i in plaintext) {
 				plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
+				if(plaintext[i].indexOf(",") !== -1)
+				{
+					plaintext[i] = plaintext[i].substring(0,plaintext[i].indexOf(","));
+				}
 			}
 			save_to_database('HUSTOJ_UPC', plaintext);
 		}
