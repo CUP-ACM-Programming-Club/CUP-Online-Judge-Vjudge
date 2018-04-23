@@ -33,8 +33,11 @@ exports.post_format = function (pid, lang, code) {
     };
 };
 
-exports.updateurl = function (pid, username) {
-    return "https://uhunt.onlinejudge.org/api/subs-user-last/" + username['user_id'] + "/1";
+exports.updateurl = function (pid, username, sid = null) {
+    if (sid === null)
+        return "https://uhunt.onlinejudge.org/api/subs-user-last/" + username['user_id'] + "/1";
+    else
+        return `https://uhunt.onlinejudge.org/api/subs-user/${username['user_id']}/${parseInt(sid) - 1}`;
 };
 
 exports.formatAccount = function (account) {
@@ -43,5 +46,10 @@ exports.formatAccount = function (account) {
 
 exports.validSubmit = function (response) {
     const redirects = response.redirects;
-    return Boolean(redirects&&redirects.length>0&&redirects[0].indexOf("received")!==-1);
+    if (Boolean(redirects && redirects.length > 0 && redirects[0].indexOf("received") !== -1)) {
+        return parseInt(redirects.substring(redirects.lastIndexOf("+") + 1, redirects.length));
+
+    }
+    else
+        return false;
 };

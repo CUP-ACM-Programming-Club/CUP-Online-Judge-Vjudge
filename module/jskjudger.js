@@ -80,13 +80,11 @@ class Judger extends eventEmitter {
                 }
             }
             else {
-                await sleep(500);
                 this.updateStatus(this.pid);
             }
         }
         catch (e) {
             logger.fatal(e);
-            account[this.oj_name].push(this);
             this.error();
         }
     };

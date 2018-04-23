@@ -40,7 +40,7 @@ exports.formatStatusUrl = (problem_id,user_id) => {
     `https://vijos.org/records?uid_or_name=${user_id}&pid=${problem_id}&tid=`;
 };
 
-exports.formatResult = (content,submit_id) => {
+exports.format = exports.formatResult = (content,submit_id,solution_id) => {
     const $ = cheerio.load(content);
     const result = $(".data-table.record_main__table")
         .find(`tr[data-rid='${submit_id}']`)
@@ -64,11 +64,7 @@ exports.formatResult = (content,submit_id) => {
         memory = parseInt(memory.substring(0,memory.indexOf("MiB"))) * 1024;
     }
     time = time.substring(0,time.indexOf("ms"));
-    return {
-        status:status,
-        time:time,
-        memory
-    }
+    return [submit_id,status,time,memory,solution_id];
 };
 
 exports.formatAccount = function (account) {

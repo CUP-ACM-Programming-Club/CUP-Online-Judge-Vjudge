@@ -14,10 +14,11 @@ const problem_status = {
     "Compilation Error": 11
 };
 
-exports.format = function (response, sid) {
+exports.format = function (response, sid, runner_id = null) {
     const $ = cheerio.load(response.text);
     const result = $(".table_text").find('tr').eq(1).find('td');
-    const runner_id = result.eq(0).text();
+    if(runner_id === null)
+        runner_id = result.eq(0).text();
     let status = result.eq(2).text();
     let time = result.eq(4).text();
     time = time.substr(0, time.length - 2);
@@ -38,8 +39,8 @@ exports.post_format = function (pid, lang, code) {
     };
 };
 
-exports.updateurl = function (pid, username) {
-    return "http://acm.hdu.edu.cn/status.php?first=&pid=" + pid + "&user=" + username['username'] + "&lang=0&status=0";
+exports.updateurl = function (pid, username,sid = "") {
+    return `http://acm.hdu.edu.cn/status.php?first=${sid}&pid=${pid}&user=${username['username']}&lang=0&status=0`;
 };
 
 exports.formatAccount = function (account) {

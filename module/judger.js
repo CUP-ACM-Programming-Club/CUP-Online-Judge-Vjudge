@@ -4,7 +4,6 @@ const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
 const log4js = require('./logger');
 const logger = log4js.logger('cheese', 'info');
-const sleep = sleep_module.sleep;
 const query = require('./include/mysql_module');
 const eventEmitter = require("events").EventEmitter;
 log4js.connectLogger(logger, {level: 'info'});
@@ -22,7 +21,18 @@ class Judger extends eventEmitter {
         this.cookie = "";
         this.ojmodule = require("./include/" + this.oj_name + "_module");
         this.finished = false;
+        this.agent = superagent.agent();
         logger.info(`constructed Judger`);
+    }
+
+    proxy_check(agent_module) {
+        agent_module = agent_module.set(this.config.browser);
+        if (this.proxy.length > 4) {
+            return agent_module.proxy(this.proxy);
+        }
+        else {
+            return agent_module;
+        }
     }
 
     static valid_judge(err, response) {
@@ -64,8 +74,6 @@ class Judger extends eventEmitter {
             });
             if (status > 3) {
                 updater(this.sid);
-                this.finished = true;
-                this.emit("finish");
                 if (status === 4) {
                     query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()])
                         .then((rows) => {
@@ -77,40 +85,44 @@ class Judger extends eventEmitter {
                     });
                 }
             }
-            else {
-                await sleep(500);
-                this.updateStatus(this.pid, this.sid, this.cookie);
-            }
+            this.finished = true;
+            this.emit("finish");
         }
         catch (e) {
             logger.fatal(e);
-            account[this.oj_name].push(this);
             this.error();
         }
     };
 
-    updateStatus(pid, cookie) {
-        if (this.proxy.length > 4)
-            superagent.get(this.ojmodule.updateurl(pid, this.account)).set("Cookie", cookie).proxy(this.proxy).set(this.config['browser']).end((err, response) => {
-                this.connect(err, response)
-            });
-        else
-            superagent.get(this.ojmodule.updateurl(pid, this.account)).set("Cookie", cookie).set(this.config['browser']).end((err, response) => {
-                this.connect(err, response)
-            });
+    updateStatus(pid) {
+        if (typeof this.runner_id === "number") {
+            this.emit("finish");
+            this.finished = true;
+            query(`update vjudge_solution set runner_id = ? where 
+            solution_id = ?`, [this.runner_id, this.solution_id]);
+        }
+        else {
+            this.proxy_check(this.agent.get(this.ojmodule.updateurl(pid, this.account)))
+                .end((err, response) => {
+                    this.connect(err, response);
+                });
+        }
     };
 
     async submitAction() {
-        await sleep(500);
         logger.info("PID:" + this.pid + " come to update");
         this.updateStatus(this.pid, this.cookie);
     };
 
-    submitAnswer(pid, lang, code, cookie) {
+    submitAnswer(pid, lang, code) {
         const postmsg = this.ojmodule.post_format(pid, lang, code);
-        if (this.proxy.length > 4)
-            superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).send(postmsg).end((err, response) => {
-                if (this.ojmodule.validSubmit(response)) {
+        this.proxy_check(this.agent.post(this.url.post_url))
+            .send(postmsg)
+            .end((err, response) => {
+                let runner_id = this.ojmodule.validSubmit(response);
+                console.log(response.redirects);
+                if (runner_id) {
+                    this.runner_id = runner_id;
                     this.updateTimeout();
                     this.submitAction(err, response)
                 }
@@ -119,24 +131,14 @@ class Judger extends eventEmitter {
                     this.emit("finish");
                 }
             });
-        else
-            superagent.post(this.url.post_url).set("Cookie", cookie).set(this.config['browser']).send(postmsg).end((err, response) => {
-                if (this.ojmodule.validSubmit(response)) {
-                    this.submitAction(err, response)
-                }
-                else {
-                    query("UPDATE vjudge_solution set result=15 where solution_id=?", [this.sid]);
-                    this.emit("finish");
-                }
-            });
     };
 
-    loginAction(err, response, cookie) {
+    loginAction(err, response) {
         if (err) {
             logger.fatal(err);
         }
         try {
-            this.submitAnswer(this.pid, this.language, this.code, cookie);
+            this.submitAnswer(this.pid, this.language, this.code);
         }
         catch (e) {
             logger.fatal(e);
@@ -170,7 +172,7 @@ class Judger extends eventEmitter {
         }, 1000 * 60 * 2);
     }
 
-    login(cookie) {
+    login() {
         if (!this.setTimeout) {
             setTimeout(() => {
                 this.setTimeout = true;
@@ -179,13 +181,11 @@ class Judger extends eventEmitter {
                 }
             }, 1000 * 60 * 2);
         }
-        if (this.proxy.length > 4)
-            superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie", cookie || "").proxy(this.proxy).send(this.account).end((err, response) => {
-                this.loginAction(err, response, response.headers["set-cookie"] || cookie);
-            });
-        else
-            superagent.post(this.url.login_url).set(this.config['browser']).set("Cookie", cookie || "").send(this.account).end((err, response) => {
-                this.loginAction(err, response, response.headers["set-cookie"] || cookie);
+        this.proxy_check(superagent.post(this.url.login_url))
+            .send(this.account)
+            .end((err, response) => {
+                this.agent._saveCookies(response);
+                this.loginAction(err, response);
             });
     };
 
@@ -210,6 +210,7 @@ class Judger extends eventEmitter {
         this.finished = false;
         //console.log(solution);
         logger.info(`run judger for sid:${this.sid}`);
+        console.log(`run judger for sid:${this.sid}`);
         //this.website_valid_check();
         this.login();
     }

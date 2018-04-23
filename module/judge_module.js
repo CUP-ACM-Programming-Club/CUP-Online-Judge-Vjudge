@@ -6,14 +6,15 @@ const query = require('./include/mysql_module');
 log4js.connectLogger(logger, {level: 'info'});
 
 let account = require('./include/account');
-const judger_list={
-    hdu:"",
-    poj:"",
-    uva:"uva",
-    jsk:"jsk",
-    vijos:"vijos",
-    bzoj:"bzoj"
+const judger_list = {
+    hdu: "",
+    poj: "",
+    uva: "uva",
+    jsk: "jsk",
+    vijos: "vijos",
+    bzoj: "bzoj"
 };
+
 class Vjudge_daemon {
     constructor(config, oj_name) {
         this.config = config;
@@ -25,7 +26,7 @@ class Vjudge_daemon {
 
     loop_function() {
         if (account[this.oj_name].length > 0) {
-            query(`select * from (select * from vjudge_solution where result='0' and oj_name='${this.oj_name.toUpperCase()}')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id `)
+            query(`select * from (select * from vjudge_solution where result = 0 and runner_id = 0 and oj_name='${this.oj_name.toUpperCase()}')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id `)
                 .then((rows) => {
                     if (rows.length > 0) {
                         logger.info(rows.length + " code(s) in queue.Judging");
@@ -53,17 +54,13 @@ class Vjudge_daemon {
         }
     }
 
-    async precheck() {
-        await query("update vjudge_solution set result=0  where (result=14 or result < 4) and oj_name='" + this.oj_name.toUpperCase() + "'");
-    }
 
     async start(_proxy) {
         if (_proxy !== 'none')
             this.proxy = _proxy;
-        else{
+        else {
             this.proxy = "";
         }
-        await this.precheck();
         const account_config = this.config['login'][this.oj_name];
         const len = account_config.length;
         account[this.oj_name] = [];
@@ -71,7 +68,7 @@ class Vjudge_daemon {
             let judger = new this.judger(this.config, account_config[i], this.proxy, this.oj_name);
             judger.on("finish", () => {
                 account[this.oj_name].push(judger);
-                if(judger.setTimeout) {
+                if (judger.setTimeout) {
                     clearTimeout(judger.setTimeout);
                 }
             });

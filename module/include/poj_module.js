@@ -17,11 +17,12 @@ const problem_status = {
     "Compile Error": 11
 };
 
-exports.format = function (response, sid) {
+exports.format = function (response, sid, runner_id = null) {
     const $ = cheerio.load(response.text);
     const result = $("table").eq(4).find('tr').eq(1).find('td');
     //log($("table").eq(4).find('tr').html());
-    const runner_id = result.eq(0).text();
+    if(runner_id === null)
+        runner_id = result.eq(0).text();
     let status = result.eq(3).text();
     status = problem_status[status];
     let time;
@@ -49,8 +50,8 @@ exports.post_format = function (pid, lang, code) {
     };
 };
 
-exports.updateurl = function (pid, username) {
-    return "http://poj.org/status?problem_id=" + pid + "&user_id=" + username['user_id1'] + "&result=&language=";
+exports.updateurl = function (pid, username,runner_id = "") {
+    return `http://poj.org/status?top=${runner_id}&problem_id=${pid}&user_id=${username['user_id1']}&result=&language=`;
 };
 
 exports.formatAccount = function (account) {
