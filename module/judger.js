@@ -73,6 +73,7 @@ class Judger extends eventEmitter {
                 logger.fatal(err)
             });
             if (status > 3) {
+            	this.cleanTimeout();
                 updater(this.sid);
                 if (status === 4) {
                     query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()])
@@ -158,6 +159,12 @@ class Judger extends eventEmitter {
 
     getAccount() {
         return this.account;
+    }
+
+    cleanTimeout() {
+    	if(this.setTimeout) {
+    		clearTimeout(this.setTimeout);
+	    }
     }
 
     updateTimeout() {

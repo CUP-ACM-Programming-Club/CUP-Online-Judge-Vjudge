@@ -37,6 +37,7 @@ exports.format = function (response, sid, runner_id = null) {
         memory = result.eq(4).text();
         memory = memory.substr(0, memory.length - 1);
     }
+    if (status < 3) status = 3;
     log("runner_id:" + runner_id + "memory:" + memory + ",time:" + time);
     return [runner_id, status, time, memory, sid];
 };

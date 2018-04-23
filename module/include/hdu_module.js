@@ -27,6 +27,7 @@ exports.format = function (response, sid, runner_id = null) {
     log("runner_id:" + runner_id + "memory:" + memory + ",time:" + time);
     if (status.substr(0, 13) === "Runtime Error") status = 10;
     else status = problem_status[status];
+    if (status < 3) status = 3;
     return [runner_id, status, time, memory, sid];
 };
 
