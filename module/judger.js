@@ -63,8 +63,14 @@ class Judger extends eventEmitter {
         this.updateTimeout();
         try {
             const sqlArr = this.ojmodule.format(response, this.sid);
+            if(isNaN(sqlArr[0]))
+            {
+                this.updateStatus(this.pid);
+                return;
+            }
             const status = sqlArr[1];
             this.result = sqlArr;
+            this.cleanTimeout();
             query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr)
                 .then(resolve => {
                 }).catch(err => {
@@ -73,7 +79,6 @@ class Judger extends eventEmitter {
                 logger.fatal(err)
             });
             if (status > 3) {
-            	this.cleanTimeout();
                 updater(this.sid);
                 if (status === 4) {
                     query("select accepted from vjudge_problem where problem_id=? and source=?", [this.pid, this.oj_name.toUpperCase()])
@@ -116,12 +121,12 @@ class Judger extends eventEmitter {
     };
 
     submitAnswer(pid, lang, code) {
+        this.updateTimeout();
         const postmsg = this.ojmodule.post_format(pid, lang, code);
         this.proxy_check(this.agent.post(this.url.post_url))
             .send(postmsg)
             .end((err, response) => {
                 let runner_id = this.ojmodule.validSubmit(response);
-                console.log(response.redirects);
                 if (runner_id) {
                     this.runner_id = runner_id;
                     this.updateTimeout();

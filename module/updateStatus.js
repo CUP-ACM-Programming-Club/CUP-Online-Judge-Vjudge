@@ -105,7 +105,7 @@ class UpdateManager {
 
     loop() {
         query(`SELECT * FROM vjudge_solution where 
-        result < 2 and oj_name in ("HDU","POJ","UVA") and runner_id != 0`)
+        result < 2 and oj_name in ("HDU","POJ","UVA") and runner_id != 'empty'`)
             .then(rows => {
                 for (let i of rows) {
                     const account = global.config.login[i.oj_name.toLowerCase()]
