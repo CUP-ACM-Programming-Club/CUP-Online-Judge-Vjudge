@@ -26,7 +26,7 @@ class Vjudge_daemon {
 
     loop_function() {
         if (account[this.oj_name].length > 0) {
-            query(`select * from (select * from vjudge_solution where result = 0 and runner_id = 0 and oj_name='${this.oj_name.toUpperCase()}')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id `)
+            query(`select * from (select * from vjudge_solution where result = 0 and runner_id = 'empty' and oj_name='${this.oj_name.toUpperCase()}')solution left join vjudge_source_code as vcode on vcode.solution_id=solution.solution_id `)
                 .then((rows) => {
                     if (rows.length > 0) {
                         logger.info(rows.length + " code(s) in queue.Judging");

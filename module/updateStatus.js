@@ -100,16 +100,18 @@ class UpdateManager {
     }
 
     static async precheck() {
-        await query("update vjudge_solution set result = 0  where (result=14 or result < 4) ");
+        await query("update vjudge_solution set result = 0,ustatus = 0 where (result=14 or result < 4)");
     }
 
     loop() {
         query(`SELECT * FROM vjudge_solution where 
-        result < 2 and oj_name in ("HDU","POJ","UVA") and runner_id != 'empty'`)
+        (result < 4 or result = 14) and oj_name in ("HDU","POJ","UVA") and runner_id != 'empty' and ustatus = 0`)
             .then(rows => {
                 for (let i of rows) {
+                    //console.log(i);
                     const account = global.config.login[i.oj_name.toLowerCase()]
                         .find(_account => Object.values(_account).some(el => el === i.judger));
+                    query(`update vjudge_solution set ustatus = 1 where solution_id = ?`,[i.solution_id]);
                     new Updater(i.oj_name, i.runner_id, i.solution_id, i.problem_id, account)
                 }
             })

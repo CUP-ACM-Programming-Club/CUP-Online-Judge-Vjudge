@@ -21,8 +21,11 @@ class UVaJudger extends Judger {
             for (let i = 0; i < 8; ++i) {
                 this.account[hidden_elements.eq(i).attr('name')] = hidden_elements.eq(i).attr('value');
             }
+            //console.log(response.headers);
             this.account['remember'] = "yes";
-            this.login();
+            this.agent._saveCookies(response);
+	    this.login(response.headers["set-cookie"]);
+
         }
         catch (e) {
             logger.fatal(e);
@@ -31,11 +34,35 @@ class UVaJudger extends Judger {
         }
     }
 
+    access(cookie) {
+	this.proxy_check(superagent.get(this.url.url).set("Cookie",cookie))
+		.end((err,response) => {
+			this.accessAction(err,response);
+		})
+	}
+
+    cookieAction(err,response) {
+         if(err) {
+		logger.fatal(err);
+	}
+	try {
+	    this.access(response.headers["set-cookie"]);
+	}
+	catch (e) {
+	    logger.fatal(e);
+	    this.error();
+	}
+    }
+
 
     getCookie() {
-        this.proxy_check(this.agent.get(this.url.url))
+        this.proxy_check(superagent.get(this.url.url))
             .end((err, response) => {
-                this.accessAction(err, response);
+            //     if(err)console.log(err)
+             //     this.proxy_check(this.agent.get(this.url.url))
+              //                     .end((err,response)=>{
+               //   if(err)console.log(err)
+                  this.cookieAction(err, response);
             });
     }
 

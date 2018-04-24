@@ -25,8 +25,9 @@ class Judger extends eventEmitter {
         logger.info(`constructed Judger`);
     }
 
-    proxy_check(agent_module) {
+    proxy_check(agent_module, cookie = "") {
         agent_module = agent_module.set(this.config.browser);
+        if (cookie && cookie.length > 0) agent_module = agent_module.set("Cookie", cookie);
         if (this.proxy.length > 4) {
             return agent_module.proxy(this.proxy);
         }
@@ -63,8 +64,7 @@ class Judger extends eventEmitter {
         this.updateTimeout();
         try {
             const sqlArr = this.ojmodule.format(response, this.sid);
-            if(isNaN(sqlArr[0]))
-            {
+            if (isNaN(sqlArr[0])) {
                 this.updateStatus(this.pid);
                 return;
             }
@@ -100,15 +100,15 @@ class Judger extends eventEmitter {
         }
     };
 
-    updateStatus(pid) {
+    updateStatus() {
         if (typeof this.runner_id === "number") {
             this.emit("finish");
             this.finished = true;
             query(`update vjudge_solution set runner_id = ? where 
-            solution_id = ?`, [this.runner_id, this.solution_id]);
+            solution_id = ?`, [this.runner_id, this.sid]);
         }
         else {
-            this.proxy_check(this.agent.get(this.ojmodule.updateurl(pid, this.account)))
+            this.proxy_check(this.agent.get(this.ojmodule.updateurl(this.pid, this.account)))
                 .end((err, response) => {
                     this.connect(err, response);
                 });
@@ -128,7 +128,9 @@ class Judger extends eventEmitter {
             .end((err, response) => {
                 let runner_id = this.ojmodule.validSubmit(response);
                 if (runner_id) {
-                    this.runner_id = runner_id;
+                    if (typeof runner_id === "number") {
+                        this.runner_id = runner_id;
+                    }
                     this.updateTimeout();
                     this.submitAction(err, response)
                 }
@@ -167,9 +169,9 @@ class Judger extends eventEmitter {
     }
 
     cleanTimeout() {
-    	if(this.setTimeout) {
-    		clearTimeout(this.setTimeout);
-	    }
+        if (this.setTimeout) {
+            clearTimeout(this.setTimeout);
+        }
     }
 
     updateTimeout() {
@@ -184,7 +186,7 @@ class Judger extends eventEmitter {
         }, 1000 * 60 * 2);
     }
 
-    login() {
+    login(cookie, res) {
         if (!this.setTimeout) {
             setTimeout(() => {
                 this.setTimeout = true;
@@ -193,10 +195,19 @@ class Judger extends eventEmitter {
                 }
             }, 1000 * 60 * 2);
         }
-        this.proxy_check(superagent.post(this.url.login_url))
+        this.account["B1"] = "login";
+        this.proxy_check(superagent.post(this.url.login_url), cookie)
             .send(this.account)
+            //  .set("Cookie",cookie)
             .end((err, response) => {
-                this.agent._saveCookies(response);
+                //console.log(this);
+                //console.log(response.text);
+                //console.log(this.account)
+                if (res)
+                    this.agent._saveCookies(res);
+                if (response.headers["set-cookie"] && response.headers["set-cookie"].length > 0)
+                    this.agent._saveCookies(response);
+                //        console.log(response.text);
                 this.loginAction(err, response);
             });
     };
