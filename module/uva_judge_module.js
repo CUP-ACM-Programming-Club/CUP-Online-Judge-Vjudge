@@ -13,7 +13,7 @@ class uva_judge_daemon extends Vjudge_daemon {
     async start(_proxy) {
         if (_proxy !== 'none')
             this.proxy = _proxy;
-        await this.precheck();
+        await UpdateManager.precheck();
         const account_config = this.config['login'][this.oj_name];
         const len = account_config.length;
         account[this.oj_name] = [];

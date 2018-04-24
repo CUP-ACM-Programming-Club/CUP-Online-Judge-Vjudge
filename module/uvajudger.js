@@ -21,47 +21,48 @@ class UVaJudger extends Judger {
             for (let i = 0; i < 8; ++i) {
                 this.account[hidden_elements.eq(i).attr('name')] = hidden_elements.eq(i).attr('value');
             }
+            //console.log(response.headers);
             this.account['remember'] = "yes";
-            this.login(response.headers["set-cookie"]);
+            this.agent._saveCookies(response);
+	    this.login(response.headers["set-cookie"]);
+
         }
         catch (e) {
             logger.fatal(e);
-            this.error();
+            this.error()
+                .catch(err => logger.fatal(err));
         }
     }
 
     access(cookie) {
-        if (this.proxy.length > 4)
-            superagent.get(this.url.url).set("Cookie", cookie).set(this.config['browser']).proxy(this.proxy).end((err, response) => {
-                this.accessAction(err, response)
-            });
-        else
-            superagent.get(this.url.url).set("Cookie", cookie).set(this.config['browser']).end((err, response) => {
-                this.accessAction(err, response)
-            });
+	this.proxy_check(superagent.get(this.url.url).set("Cookie",cookie))
+		.end((err,response) => {
+			this.accessAction(err,response);
+		})
+	}
+
+    cookieAction(err,response) {
+         if(err) {
+		logger.fatal(err);
+	}
+	try {
+	    this.access(response.headers["set-cookie"]);
+	}
+	catch (e) {
+	    logger.fatal(e);
+	    this.error();
+	}
     }
 
-    cookieAction(err, response) {
-        if (err) {
-            logger.fatal(err);
-        }
-        try {
-            this.access(response.headers["set-cookie"]);
-        }
-        catch (e) {
-            logger.fatal(e);
-            this.error();
-        }
-    }
 
     getCookie() {
-        if (this.proxy.length > 4)
-            superagent.get(this.url.url).set(this.config['browser']).proxy(this.proxy).end((err, response) => {
-                this.cookieAction(err, response)
-            });
-        else
-            superagent.get(this.url.url).set(this.config['browser']).end((err, response) => {
-                this.cookieAction(err, response)
+        this.proxy_check(superagent.get(this.url.url))
+            .end((err, response) => {
+            //     if(err)console.log(err)
+             //     this.proxy_check(this.agent.get(this.url.url))
+              //                     .end((err,response)=>{
+               //   if(err)console.log(err)
+                  this.cookieAction(err, response);
             });
     }
 

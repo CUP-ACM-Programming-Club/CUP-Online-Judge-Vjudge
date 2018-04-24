@@ -17,11 +17,21 @@ const problem_status = {
     "Compile Error": 11
 };
 
-exports.format = function (response, sid) {
+exports.format = function (response, sid, runner_id = "") {
     const $ = cheerio.load(response.text);
-    const result = $("table").eq(4).find('tr').eq(1).find('td');
-    //log($("table").eq(4).find('tr').html());
-    const runner_id = result.eq(0).text();
+    //console.log(response.text);
+    const result1 = $("table").eq(4).find('tr').eq(1).find('td');
+    const result2 = $("table").eq(3).find("tr").eq(1).find("td");
+    let result;
+    if (result1.eq(0).text().length < 3) {
+        result = result2;
+    }
+    else {
+        result = result1;
+    }
+    if (isNaN(parseInt(runner_id))) {
+        runner_id = result.eq(0).text();
+    }
     let status = result.eq(3).text();
     status = problem_status[status];
     let time;
@@ -37,8 +47,9 @@ exports.format = function (response, sid) {
         memory = memory.substr(0, memory.length - 1);
     }
     if (status < 3) status = 3;
-    log("runner_id:" + runner_id + "memory:" + memory + ",time:" + time);
-    return [runner_id, status, time, memory, sid];
+    //log("runner_id:" + runner_id + "memory:" + memory + ",time:" + time);
+    //log([runner_id, status || 0, time, memory, sid]);
+    return [runner_id, status || 0, time, memory, sid];
 };
 
 exports.post_format = function (pid, lang, code) {
@@ -50,8 +61,11 @@ exports.post_format = function (pid, lang, code) {
     };
 };
 
-exports.updateurl = function (pid, username) {
-    return "http://poj.org/status?problem_id=" + pid + "&user_id=" + username['user_id1'] + "&result=&language=";
+exports.updateurl = function (pid, username, runner_id = "") {
+    if (typeof runner_id === "number" || !isNaN(runner_id)) {
+        runner_id = parseInt(runner_id) + 1;
+    }
+    return `http://poj.org/status?top=${runner_id}&problem_id=${pid}&user_id=${username['user_id1']}&result=&language=`;
 };
 
 exports.formatAccount = function (account) {

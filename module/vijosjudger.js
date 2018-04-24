@@ -60,10 +60,10 @@ class Judger extends eventEmitter {
                         }
                     }, 1000 * 60 * 2);
                 }
-                const result = that.ojmodule.formatResult(response.text, submit_id);
+                const result = that.ojmodule.formatResult(response.text, submit_id, that.sid);
                 query(`update vjudge_solution set runner_id = ?,
                 result = ?,time = ?,memory = ? where solution_id = ?`,
-                    [submit_id, result.status, result.time, result.memory, that.sid])
+                    result)
                     .then(() => {
                     })
                     .catch((err) => {
