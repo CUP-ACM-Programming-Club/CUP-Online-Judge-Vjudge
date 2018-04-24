@@ -17,7 +17,7 @@ const problem_status = {
     "Compile Error": 11
 };
 
-exports.format = function (response, sid, runner_id = null) {
+exports.format = function (response, sid, runner_id = "") {
     const $ = cheerio.load(response.text);
     //console.log(response.text);
     const result1 = $("table").eq(4).find('tr').eq(1).find('td');
@@ -29,7 +29,7 @@ exports.format = function (response, sid, runner_id = null) {
     else {
         result = result1;
     }
-    if (isNaN(runner_id)) {
+    if (isNaN(parseInt(runner_id))) {
         runner_id = result.eq(0).text();
     }
     let status = result.eq(3).text();
@@ -48,6 +48,7 @@ exports.format = function (response, sid, runner_id = null) {
     }
     if (status < 3) status = 3;
     //log("runner_id:" + runner_id + "memory:" + memory + ",time:" + time);
+    //log([runner_id, status || 0, time, memory, sid]);
     return [runner_id, status || 0, time, memory, sid];
 };
 
