@@ -40,9 +40,16 @@ class Judger extends eventEmitter {
     }
 
     async record(rows) {
-        let accepted = (parseInt(rows[0]['accepted']) + 1) || 1;
+        //let accepted = (parseInt(rows[0]['accepted']) + 1) || 1;
         try {
-            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accepted, this.pid, this.oj_name.toUpperCase()]);
+            query(`update vjudge_problem set accepted =
+(select count(1) from vjudge_solution where vjudge_solution.problem_id= ?
+and oj_name = ? and result = 4),
+  submit = (select count(1) from vjudge_solution where vjudge_solution.problem_id = ?
+  and oj_name = ?)
+  where problem_id = ? and source = ?`, [this.pid, this.oj_name.toUpperCase(), this.pid, this.oj_name.toUpperCase(), this.pid, this.oj_name.toUpperCase()]);
+
+            //query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accepted, this.pid, this.oj_name.toUpperCase()]);
         }
         catch (e) {
             this.record(rows);
