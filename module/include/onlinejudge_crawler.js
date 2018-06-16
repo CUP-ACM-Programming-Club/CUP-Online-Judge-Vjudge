@@ -16,10 +16,10 @@ module.exports = function (accountArr, config) {
 		query("SELECT * FROM vjudge_record WHERE user_id=? and oj_name=?", [accountArr['user_id'], oj_name])
 			.then(async (rows) => {
 				let list = [];
-				for (i in rows) {
+				for (let i in rows) {
 					list[rows[i].problem_id] = 1;
 				}
-				for (i in arr) {
+				for (let i in arr) {
 					if (typeof arr[i] !== "undefined" && arr[i].toString().length > 0 && (typeof list === 'undefined' || typeof list[arr[i]] === 'undefined')) {
 						await query("INSERT INTO vjudge_record(user_id,oj_name,problem_id,time)VALUES(?,?,?,NOW())",
 							[accountArr['user_id'], oj_name, arr[i]]);
@@ -36,7 +36,7 @@ module.exports = function (accountArr, config) {
 		else {
 			const $ = cheerio.load(response.text);
 			let arr = $('table').find('table').eq(2).find('script').eq(0).html().split(';');
-			for (i in arr) {
+			for (let i in arr) {
 				arr[i] = arr[i].substring(arr[i].indexOf('(') + 1, arr[i].indexOf(','));
 			}
 			save_to_database('HDU', arr);
@@ -59,7 +59,7 @@ module.exports = function (accountArr, config) {
 			let js = $("script");
 			js = js.eq(1).html();
 			js = js.substring(js.indexOf('}') + 1, js.length).split('\n');
-			for (i in js) {
+			for (let i in js) {
 				js[i] = js[i].substring(js[i].indexOf('(') + 1, js[i].indexOf(')'));
 			}
 			save_to_database('POJ', js);
@@ -80,7 +80,7 @@ module.exports = function (accountArr, config) {
 		else {
 			const json = JSON.parse(response.text)['result'];
 			let arr = [];
-			for (i in json) {
+			for (let i in json) {
 				if (json[i]['verdict'] === 'OK') {
 					let problem_id = json[i]['problem'];
 					problem_id = problem_id['contestId'] + problem_id['index'];
@@ -105,7 +105,7 @@ module.exports = function (accountArr, config) {
 		else {
 			const json = JSON.parse(response.text)["subs"];
 			let arr = [];
-			for (i in json) {
+			for (let i in json) {
 				if (90 === parseInt(json[i][2])) {
 					let problem_id = uva[json[i][1]];
 					arr.push(problem_id);
@@ -192,7 +192,7 @@ module.exports = function (accountArr, config) {
 			const $ = cheerio.load(response.text);
 			let plaintext = $("table").find('script').eq(0).html();
 			plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
-			for (i in plaintext) {
+			for (let i in plaintext) {
 				plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
 				if(plaintext[i].indexOf(",") !== -1)
 				{
@@ -222,7 +222,7 @@ module.exports = function (accountArr, config) {
 			let hducnt = 0;
 			let poj = [];
 			let pojcnt = 0;
-			for (i in json) {
+			for (let i in json) {
 				if (json[i][11] === 'HDU')
 					hdu[hducnt++] = json[i][12];
 				else if (json[i][11] === 'POJ')
@@ -257,7 +257,7 @@ module.exports = function (accountArr, config) {
 	const uAction = (err, response) => {
 		if (err) return;
 		const res = JSON.parse(response.text);
-		for (i in res) {
+		for (let i in res) {
 			uva[res[i][0]] = res[i][1];
 		}
 	};
