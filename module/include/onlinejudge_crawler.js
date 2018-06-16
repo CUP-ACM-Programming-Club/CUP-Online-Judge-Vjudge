@@ -157,6 +157,7 @@ module.exports = function (accountArr, config) {
 			const ural = json['URAL'];
 			const zoj = json['ZOJ'];
 			const kattis = json['Kattis'];
+			const atcoder = json['AtCoder'];
 			save_to_database('HDU', hdu);
 			save_to_database('POJ', poj);
 			save_to_database('CODEFORCES', codeforces);
@@ -165,6 +166,7 @@ module.exports = function (accountArr, config) {
 			save_to_database('UVALive', uvalive);
 			save_to_database('FZU', fzu);
 			save_to_database('Aizu', aizu);
+			save_to_database('AtCoder',atcoder);
 			save_to_database('CSU', csu);
 			save_to_database('HYSBZ', hysbz);
 			save_to_database('SPOJ', spoj);
@@ -177,9 +179,9 @@ module.exports = function (accountArr, config) {
 
 	const vjudge_crawler = (account) => {
 		if (proxy.length > 4)
-			superagent.get("https://cn.vjudge.net/user/solveDetail/" + account).set(config['browser']).proxy(proxy).end(vjudgeAction);
+			superagent.get("https://vjudge.net/user/solveDetail/" + account).set(config['browser']).proxy(proxy).end(vjudgeAction);
 		else
-			superagent.get("https://cn.vjudge.net/user/solveDetail/" + account).set(config['browser']).end(vjudgeAction);
+			superagent.get("https://vjudge.net/user/solveDetail/" + account).set(config['browser']).end(vjudgeAction);
 	};
 
 	const hustoj_upcAction = async function (err, response) {
