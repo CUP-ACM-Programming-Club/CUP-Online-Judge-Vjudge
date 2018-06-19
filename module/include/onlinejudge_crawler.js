@@ -213,11 +213,21 @@ module.exports = function (accountArr, config) {
 	};
 
 	const upcvjAction = function (err, response) {
-		if (err || !response.ok) {
+		if (err || !response.ok||!response.text) {
 			console.log("UPCVjudgeAction:Some error occured in response.");
 		}
 		else {
-			let json = JSON.parse(response.text)['data'];
+			let json;
+            if (/^[\],:{}\s]*$/.test(response.text.replace(/\\["\\\/bfnrtu]/g, '@').
+            replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').
+            replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+
+                json = JSON.parse(response.text)['data']
+
+            }else{
+                console.log("UPCVjudgeAction:Some error occured in response.");
+                return;
+            }
 			let hdu = [];
 			let hducnt = 0;
 			let poj = [];
