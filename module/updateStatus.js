@@ -106,7 +106,7 @@ class UpdateManager {
     }
 
     static async precheck() {
-        await query("update vjudge_solution set result = 0,ustatus = 0 where (result=14 or result < 4)");
+        await query("update vjudge_solution set result = 'empty',ustatus = 0 where (result=14 or result < 4)");
     }
 
     loop() {

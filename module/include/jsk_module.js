@@ -18,14 +18,19 @@ const language_files = ["main.c","main.cpp","main.cpp","Main.java","main.py","ma
 
 exports.format = function (response) {
     const receive_data = response;
-    if(receive_data.status === "running"){
-        return 3;
-    }
-    else if(receive_data.status === "fail"){
-        return 15;
-    }
-    else{
+    if(receive_data.status === "finished" && receive_data.data && receive_data.data.reason) {
         return problem_status[receive_data.data.reason];
+    }
+    else {
+        if (receive_data.status === "running") {
+            return 3;
+        }
+        else if (receive_data.status === "fail") {
+            return 15;
+        }
+        else {
+            return 3;
+        }
     }
 };
 

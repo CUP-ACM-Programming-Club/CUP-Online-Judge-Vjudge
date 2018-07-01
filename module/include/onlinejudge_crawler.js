@@ -76,7 +76,7 @@ module.exports = function (accountArr, config) {
                         _data.result = parseResult(current.eq(3).text());
                         _data.problem_id = current.eq(2).text();
                         _data.time = current.eq(5).text();
-                        _data.time = _data.time.substring(0, _data.time.indexOf("MS"))|| "0";
+                        _data.time = _data.time.substring(0, _data.time.indexOf("MS")) || "0";
                         _data.memory = current.eq(4).text();
                         _data.memory = _data.memory.substring(0, _data.memory.indexOf("K")) || "0";
                         _data.code_length = current.eq(7).text();
@@ -118,12 +118,12 @@ module.exports = function (accountArr, config) {
         }
 
         return new Promise((resolve) => {
-            pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}`:""}`)).set(browser)
+            pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`)).set(browser)
                 .end((err, response) => {
                     const data = JSON.parse(response.text).data;
                     let row = [];
                     let next_id;
-                    for(let i of data) {
+                    for (let i of data) {
                         let _data = {
                             runner_id: 0,
                             submit_time: null,
@@ -253,7 +253,7 @@ module.exports = function (accountArr, config) {
             select ?, ?, ?,?,?,?,?,?,? from dual where not exists (select * from vjudge_record
             where vjudge_record.problem_id = ? and vjudge_record.oj_name = ? and user_id = ? and time = ? )
             `, [user_id, row.oj_name, row.problem_id, row.submit_time, row.result, row.time, row.memory, row.code_length, row.language, row.problem_id
-                , row.oj_name, user_id,row.submit_time])
+                , row.oj_name, user_id, row.submit_time])
         }
     };
 
@@ -439,14 +439,14 @@ module.exports = function (accountArr, config) {
             username: "cupvjudge",
             password: "2016011253"
         };
-        await new Promise((resolve)=>{
+        await new Promise((resolve) => {
             pagent(agent.post("https://vjudge.net/user/login")).set(browser).send(us).end((err, res) => {
                 resolve();
             });
         });
         let next_id = undefined;
         let data = [];
-        for (;;) {
+        for (; ;) {
             let res = await vjudgecheck(account, next_id);
             next_id = res.next;
             if (res.data.length > 0)
@@ -462,21 +462,25 @@ module.exports = function (accountArr, config) {
         }
         else {
             const $ = cheerio.load(response.text);
+            console.log($.text());
             let plaintext = $("table").find('script').eq(0).html();
-            plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
-            for (let i in plaintext) {
-                plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
-                if (plaintext[i].indexOf(",") !== -1) {
-                    plaintext[i] = plaintext[i].substring(0, plaintext[i].indexOf(","));
+            if (plaintext && plaintext.substring) {
+                plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
+                for (let i in plaintext) {
+                    plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
+                    if (plaintext[i].indexOf(",") !== -1) {
+                        plaintext[i] = plaintext[i].substring(0, plaintext[i].indexOf(","));
+                    }
                 }
+                save_to_database('HUSTOJ_UPC', plaintext);
             }
-            save_to_database('HUSTOJ_UPC', plaintext);
         }
     };
 
 
     const hustoj_upc_crawler = (account) => {
         //  console.log(account);
+        return;
         if (proxy.length > 4)
             superagent.get("http://exam.upc.edu.cn/userinfo.php?user=" + account).set(config['browser']).proxy(proxy).end(hustoj_upcAction);
         else
@@ -550,7 +554,9 @@ module.exports = function (accountArr, config) {
     const crawler = () => {
         for (const value in accountArr) {
             if (value === 'user_id') continue;
-            if (accountArr[value] !== null) crawler_match[value](accountArr[value]);
+            if (accountArr[value] !== null && typeof crawler_match[value] === "function") {
+                crawler_match[value](accountArr[value]);
+            }
         }
     };
     this.run = () => {
