@@ -66,9 +66,9 @@ and oj_name = ? and result = 4),
                     }, 1000 * 60 * 2);
                 }
                 const result = that.ojmodule.formatResult(response.text, submit_id, that.sid);
-                query(`update vjudge_solution set runner_id = ?,
+                query(`update vjudge_solution set runner_id = 'empty',
                 result = ?,time = ?,memory = ? where solution_id = ?`,
-                    result)
+                    [result.status,result.time,result.memory,that.sid])
                     .then(() => {
                     })
                     .catch((err) => {
