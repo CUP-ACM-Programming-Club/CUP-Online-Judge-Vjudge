@@ -19,6 +19,10 @@ module.exports = function (accountArr, config) {
         return proxy.length > 4 ? agent_module.proxy(proxy) : agent_module;
     }
 
+    function check_json(text) {
+        return /^[\],:{}\s]*$/.test(text.replace(/\\["\\\/bfnrtu]/g, '@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').replace(/(?:^|:|,)(?:\s*\[)+/g, ''))
+    }
+
 
     function pojcheck(user, id) {
         function parseResult(result) {
@@ -120,6 +124,9 @@ module.exports = function (accountArr, config) {
         return new Promise((resolve) => {
             pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`)).set(browser)
                 .end((err, response) => {
+                    if(!check_json(response.text)) {
+                        return;
+                    }
                     const data = JSON.parse(response.text).data;
                     let row = [];
                     let next_id;
@@ -330,6 +337,9 @@ module.exports = function (accountArr, config) {
             console.log("CodeForceAction:Some error occured in response.");
         }
         else {
+            if(!check_json(response.text)) {
+                return;
+            }
             const json = JSON.parse(response.text)['result'];
             let arr = [];
             for (let i in json) {
@@ -355,6 +365,9 @@ module.exports = function (accountArr, config) {
             console.log("UVAAction:Some error occured in response.");
         }
         else {
+            if(!check_json(response.text)){
+                return;
+            }
             const json = JSON.parse(response.text)["subs"];
             let arr = [];
             for (let i in json) {
@@ -393,6 +406,9 @@ module.exports = function (accountArr, config) {
             console.log("VjudgeAction:Some error occured in response.");
         }
         else {
+            if(!check_json(response.text)) {
+                return;
+            }
             const json = (JSON.parse(response.text))['acRecords'];
             const hdu = json['HDU'];
             const poj = json['POJ'];
@@ -493,7 +509,7 @@ module.exports = function (accountArr, config) {
         }
         else {
             let json;
-            if (/^[\],:{}\s]*$/.test(response.text.replace(/\\["\\\/bfnrtu]/g, '@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+            if (check_json(response.text)) {
 
                 json = JSON.parse(response.text)['data']
 
@@ -539,6 +555,9 @@ module.exports = function (accountArr, config) {
 
     const uAction = (err, response) => {
         if (err) return;
+        if(!check_json(response.text)) {
+            return;
+        }
         const res = JSON.parse(response.text);
         for (let i in res) {
             uva[res[i][0]] = res[i][1];
