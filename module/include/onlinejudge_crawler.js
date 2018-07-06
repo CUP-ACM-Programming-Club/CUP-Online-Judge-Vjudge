@@ -10,6 +10,7 @@ const sleep = functional.sleep;
 let proxy = "";
 let uva = [];
 let agent = superagent.agent();
+let upc = superagent.agent();
 module.exports = function (accountArr, config) {
     if (typeof config['proxy'] !== 'undefined' && typeof  config['proxy'] !== null)
         proxy = config['proxy'];
@@ -124,7 +125,10 @@ module.exports = function (accountArr, config) {
         return new Promise((resolve) => {
             pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`)).set(browser)
                 .end((err, response) => {
-                    if(!check_json(response.text)) {
+                    if(!response.text || err) {
+                        return;
+                    }
+                    if (!check_json(response.text)) {
                         return;
                     }
                     const data = JSON.parse(response.text).data;
@@ -337,7 +341,7 @@ module.exports = function (accountArr, config) {
             console.log("CodeForceAction:Some error occured in response.");
         }
         else {
-            if(!check_json(response.text)) {
+            if (!check_json(response.text)) {
                 return;
             }
             const json = JSON.parse(response.text)['result'];
@@ -365,7 +369,7 @@ module.exports = function (accountArr, config) {
             console.log("UVAAction:Some error occured in response.");
         }
         else {
-            if(!check_json(response.text)){
+            if (!check_json(response.text)) {
                 return;
             }
             const json = JSON.parse(response.text)["subs"];
@@ -406,7 +410,7 @@ module.exports = function (accountArr, config) {
             console.log("VjudgeAction:Some error occured in response.");
         }
         else {
-            if(!check_json(response.text)) {
+            if (!check_json(response.text)) {
                 return;
             }
             const json = (JSON.parse(response.text))['acRecords'];
@@ -478,7 +482,6 @@ module.exports = function (accountArr, config) {
         }
         else {
             const $ = cheerio.load(response.text);
-            console.log($.text());
             let plaintext = $("table").find('script').eq(0).html();
             if (plaintext && plaintext.substring) {
                 plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
@@ -493,14 +496,52 @@ module.exports = function (accountArr, config) {
         }
     };
 
+    const hustoj_upc_login = () => {
+        // agent.get(`http://exam.upc.edu.cn/csrf.php`).set(browser)
+        //     .end((err,response)=>{
+        //         const $ = cheerio.load(response.text);
+        //         agent.post(`http://exam.upc.edu.cn/login.php`).set(browser)
+        //             .send({
+        //                 user_id:'cup_sc01',
+        //                 password:'9fcb631dfbfb5deb9469b8c9f7b99d71',
+        //                 csrf:$('input').val()
+        //             }).end((err,response)=>{
+        //                 agent.get(`http://exam.upc.edu.cn/userinfo.php?user=cup_sc01`).set(browser)
+        //                     .end((err,response)=>{
+        //                         console.log(response.text);
+        //                     })
+        //         })
+        //     });
+        if (!this.upcLogined) {
+            const that = this;
+            return new Promise((resolve, reject) => {
+                pagent(upc.get(`http://exam.upc.edu.cn/csrf.php`)).set(config['browser'])
+                    .end((err, response) => {
+                        const $ = cheerio.load(response.text);
+                        pagent(upc.post(`http://exam.upc.edu.cn/login.php`)).set(config['browser'])
+                            .send({
+                                user_id: 'cup_sc01',
+                                password: '9fcb631dfbfb5deb9469b8c9f7b99d71',
+                                csrf: $('input').val()
+                            }).end((err, response) => {
+                                that.upclogined = true;
+                            resolve();
+                        })
+                    })
+            });
+
+        }
+        else {
+            return new Promise(resolve => resolve());
+        }
+    };
+
 
     const hustoj_upc_crawler = (account) => {
         //  console.log(account);
-        return;
-        if (proxy.length > 4)
-            superagent.get("http://exam.upc.edu.cn/userinfo.php?user=" + account).set(config['browser']).proxy(proxy).end(hustoj_upcAction);
-        else
-            superagent.get("http://exam.upc.edu.cn/userinfo.php?user=" + account).set(config['browser']).end(hustoj_upcAction);
+        hustoj_upc_login().then(()=>{
+            pagent(upc.get("http://exam.upc.edu.cn/userinfo.php?user=" + account)).set(config['browser']).end(hustoj_upcAction)
+        });
     };
 
     const upcvjAction = function (err, response) {
@@ -555,7 +596,7 @@ module.exports = function (accountArr, config) {
 
     const uAction = (err, response) => {
         if (err) return;
-        if(!check_json(response.text)) {
+        if (!check_json(response.text)) {
             return;
         }
         const res = JSON.parse(response.text);
