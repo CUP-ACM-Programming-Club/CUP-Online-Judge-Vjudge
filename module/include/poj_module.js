@@ -19,16 +19,7 @@ const problem_status = {
 
 exports.format = function (response, sid, runner_id = "") {
     const $ = cheerio.load(response.text);
-    //console.log(response.text);
-    const result1 = $("table").eq(4).find('tr').eq(1).find('td');
-    const result2 = $("table").eq(3).find("tr").eq(1).find("td");
-    let result;
-    if (result1.eq(0).text().length < 3) {
-        result = result2;
-    }
-    else {
-        result = result1;
-    }
+    let result = $("table[cellspacing='0']").eq(0).find('tr').eq(1).find('td');
     if (isNaN(parseInt(runner_id))) {
         runner_id = result.eq(0).text();
     }
@@ -62,7 +53,7 @@ exports.post_format = function (pid, lang, code) {
 };
 
 exports.updateurl = function (pid, username, runner_id = "") {
-    if (typeof runner_id === "number" || !isNaN(runner_id)) {
+    if (typeof runner_id === "number" || !isNaN(runner_id) || parseInt(runner_id) !== 0) {
         runner_id = parseInt(runner_id) + 1;
     }
     return `http://poj.org/status?top=${runner_id}&problem_id=${pid}&user_id=${username['user_id1']}&result=&language=`;

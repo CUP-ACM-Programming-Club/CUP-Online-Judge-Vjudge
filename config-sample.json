@@ -1,74 +1,38 @@
 {
   "mysql":{
-    "host": "10.3.40.48",
+    "host": "127.0.0.1",
     "user": "root",
-    "password": "19971214",
+    "password": "root",
     "port": "3306",
-    "database": "jol",
-    "connectionLimit": 100
+    "database": "jol"
   },
   "proxy":"none",
-  "socks":"socks5://127.0.0.1:1090",
   "login":{
     "hdu":[
-      {
-        "username":"cupvjudge",
-        "userpass":"2016011253"
-      },
-      {
-        "username":"cupvjudge1",
-        "userpass":"2016011253"
-      },
-      {
-	"username":"cupvjudge2",
-	"userpass":"2016011253"
-      }
-    ],
+    {
+      "username":"your username should enter here",
+      "userpass":"your password should enter here"
+    }],
     "poj":[
-      {
-        "user_id1":"cupvjudge",
-        "password1":"2016011253"
-      },
-      {
-        "user_id1":"cupvjudge1",
-        "password1":"2016011253"
-      },
-      {
-	"user_id1":"cupvjudge2",
-	"password1":"2016011253"
-	}
-    ],
+    {
+      "user_id1":"your username should enter here",
+      "password1":"your password should enter here"
+    }
+  ],
     "uva":[
       {
-        "username":"cupvjudge",
-        "passwd":"2016011253",
-        "user_id":"908928"
-      },
-	  {
-        "username":"cupvjudge1",
-        "passwd":"2016011253",
-        "user_id":"931167"
+        "username":"your username should enter here",
+        "passwd":"your password should enter here",
+        "user_id":"your user_id should enter here"
       }
     ],
     "jsk":[
-	{
-	 "account":"+8617600970239",
-	 "password":"2016011253",
-	 "save":"1"
-	}
-     ],
-    "vijos":[
-         {
-           "uname":"cupvjudge",
-           "password":"2016011253"
-         }
-     ],
-    "bzoj":[
-        {
-          "uname":"cupvjudge",
-          "password":"2016011253"
-        }
-     ]
+      {
+        "account":"your username should enter here",
+        "password":"your password should enter here",
+        "save":"1"
+      }
+    ]
   },
   "browser":{
     "User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36",
@@ -77,7 +41,7 @@
   "useragent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36",
   "url":{
     "hdu": {
-      "url": "http://hdu.hustoj.com",
+      "url": "http://acm.hdu.edu.cn",
       "login_url": "http://acm.hdu.edu.cn/userloginex.php?action=login",
       "runner_url": "http://acm.hdu.edu.cn/status.php?last=",
       "post_url": "http://acm.hdu.edu.cn/submit.php?action=submit"
@@ -95,11 +59,8 @@
     "jsk":{
       "url":"https://www.jisuanke.com",
       "login_url":"https://passport.jisuanke.com/auth/login",
-      "test_run_url":"",
+      "test_run_url":"https://nanti.jisuanke.com/testrun/submit",
       "post_url":"https://nanti.jisuanke.com/solve/submit"
-    },
-    "vijos":{
-       "login_url":"https://vijos.org/login"
     }
   }
 }

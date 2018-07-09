@@ -64,7 +64,12 @@ exports.format = exports.formatResult = (content,submit_id,solution_id) => {
         memory = parseInt(memory.substring(0,memory.indexOf("MiB"))) * 1024;
     }
     time = time.substring(0,time.indexOf("ms"));
-    return [submit_id,status,time,memory,solution_id];
+    return {
+      status:status,
+      time:time,
+      memory:memory
+    };
+    //return [submit_id,status,time,memory,solution_id];
 };
 
 exports.formatAccount = function (account) {

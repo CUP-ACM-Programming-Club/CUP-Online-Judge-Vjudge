@@ -38,9 +38,14 @@ class Judger extends eventEmitter {
     }
 
     record(rows) {
-        let accepted = (parseInt(rows[0]['accepted']) + 1) || 1;
+        // let accepted = (parseInt(rows[0]['accepted']) + 1) || 1;
         try {
-            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accepted, this.pid, this.oj_name.toUpperCase()]);
+            query(`update vjudge_problem set accepted =
+(select count(1) from vjudge_solution where vjudge_solution.problem_id= ?
+and oj_name = ? and result = 4),
+  submit = (select count(1) from vjudge_solution where vjudge_solution.problem_id = ?
+  and oj_name = ?)
+  where problem_id = ? and source = ?`,[this.pid,this.oj_name.toUpperCase(),this.pid,this.oj_name.toUpperCase(),this.pid,this.oj_name.toUpperCase()]);
         }
         catch (e) {
             this.record(rows);
@@ -61,9 +66,9 @@ class Judger extends eventEmitter {
                     }, 1000 * 60 * 2);
                 }
                 const result = that.ojmodule.formatResult(response.text, submit_id, that.sid);
-                query(`update vjudge_solution set runner_id = ?,
+                query(`update vjudge_solution set runner_id = 'empty',
                 result = ?,time = ?,memory = ? where solution_id = ?`,
-                    result)
+                    [result.status,result.time,result.memory,that.sid])
                     .then(() => {
                     })
                     .catch((err) => {

@@ -34,9 +34,15 @@ class Updater {
     };
 
     async record(rows) {
-        let accpeted = (parseInt(rows[0]['accepted']) + 1) || 1;
+        //let accpeted = (parseInt(rows[0]['accepted']) + 1) || 1;
         try {
-            query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
+            query(`update vjudge_problem set accepted =
+(select count(1) from vjudge_solution where vjudge_solution.problem_id= ?
+and oj_name = ? and result = 4),
+  submit = (select count(1) from vjudge_solution where vjudge_solution.problem_id = ?
+  and oj_name = ?)
+  where problem_id = ? and source = ?`,[this.pid,this.oj_name.toUpperCase(),this.pid,this.oj_name.toUpperCase(),this.pid,this.oj_name.toUpperCase()]);
+           // query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
         }
         catch (e) {
             this.record(rows);
@@ -100,7 +106,7 @@ class UpdateManager {
     }
 
     static async precheck() {
-        await query("update vjudge_solution set result = 0,ustatus = 0 where (result=14 or result < 4)");
+        await query("update vjudge_solution set result = 'empty',ustatus = 0 where (result=14 or result < 4)");
     }
 
     loop() {
