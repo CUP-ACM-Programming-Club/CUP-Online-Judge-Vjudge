@@ -11,6 +11,16 @@ let proxy = "";
 let uva = [];
 let agent = superagent.agent();
 let upc = superagent.agent();
+
+function checkInteger(integer) {
+    if (isNaN(integer)) {
+        return 0;
+    }
+    else {
+        return integer;
+    }
+}
+
 module.exports = function (accountArr, config) {
     if (typeof config['proxy'] !== 'undefined' && typeof  config['proxy'] !== null)
         proxy = config['proxy'];
@@ -98,6 +108,86 @@ module.exports = function (accountArr, config) {
         })
     }
 
+    function upccheck(user, id) {
+        function parseResult(result) {
+            const problem_status = {
+                "等待": 0,
+                "等待重判": 1,
+                "编译中": 2,
+                "运行并评判": 3,
+                "正确": 4,
+                "格式错误": 5,
+                "答案错误": 6,
+                "时间超限": 7,
+                "内存超限": 8,
+                "输出超限": 9,
+                "运行错误": 10,
+                "编译错误": 11
+            };
+            if (result.charAt(0) === "*") {
+                result = result.substring(1);
+            }
+            if (problem_status[result]) return problem_status[result];
+            else {
+                for (let index in problem_status) {
+                    if (result.indexOf(index) !== -1) {
+                        return problem_status[index];
+                    }
+                }
+                return 10;
+            }
+        }
+
+        return new Promise((resolve) => {
+            hustoj_upc_login().then(() => {
+                pagent(upc.get(`http://exam.upc.edu.cn/status.php?user_id=${user}${id ? `&top=${id}` : ""}`))
+                    .set(browser)
+                    .end((err, response) => {
+                        const $ = cheerio.load(response.text), data = $("#result-tab tr"),
+                            len = data.length;
+                        let next_id;
+                        let row = [];
+                        // console.log($.text());
+                        for (let i = 1; i < len; ++i) {
+                            const current = data.eq(i).find("td");
+                            let _data = {
+                                runner_id: 0,
+                                submit_time: null,
+                                result: null,
+                                problem_id: null,
+                                time: null,
+                                memory: null,
+                                code_length: null,
+                                language: null,
+                                oj_name: "HUSTOJ_UPC"
+                            };
+                            //console.log(current.text());
+
+                            _data.runner_id = current.eq(0).text();
+                            _data.submit_time = current.eq(8).text();
+                            _data.result = parseResult(current.eq(3).text());
+                            _data.problem_id = current.eq(2).text();
+                            _data.time = checkInteger(current.eq(5).text());
+                            _data.memory = checkInteger(current.eq(4).text());
+                            _data.code_length = current.eq(7).text();
+                            _data.code_length = checkInteger(_data.code_length.substring(0, _data.code_length.indexOf("B")));
+                            _data.language = current.eq(6).text().replace(/\/Edit/, "");
+                            next_id = parseInt(current.eq(0).text());
+                            row.push(_data);
+                        }
+                        if (len < 20) {
+                            console.log(next_id);
+                            next_id = false;
+                        }
+                        resolve({
+                            data: row,
+                            next: typeof next_id === "number" ? next_id : Boolean(next_id)
+                        });
+                    });
+            });
+
+        })
+    }
 
     function vjudgecheck(user, id) {
         function parseResult(result) {
@@ -125,7 +215,7 @@ module.exports = function (accountArr, config) {
         return new Promise((resolve) => {
             pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`)).set(browser)
                 .end((err, response) => {
-                    if(!response.text || err) {
+                    if (!response.text || err) {
                         return;
                     }
                     if (!check_json(response.text)) {
@@ -263,7 +353,8 @@ module.exports = function (accountArr, config) {
             await query(`insert into vjudge_record (user_id,oj_name,problem_id,time,result,time_running,memory,code_length,language) 
             select ?, ?, ?,?,?,?,?,?,? from dual where not exists (select * from vjudge_record
             where vjudge_record.problem_id = ? and vjudge_record.oj_name = ? and user_id = ? and time = ? )
-            `, [user_id, row.oj_name, row.problem_id, row.submit_time, row.result, row.time, row.memory, row.code_length, row.language, row.problem_id
+            `, [user_id, row.oj_name, row.problem_id, row.submit_time, row.result, checkInteger(row.time), checkInteger(row.memory),
+                checkInteger(row.code_length), checkInteger(row.language), row.problem_id
                 , row.oj_name, user_id, row.submit_time])
         }
     };
@@ -329,6 +420,22 @@ module.exports = function (accountArr, config) {
         for (; ;) {
             let res = await pojcheck(account, next_id);
             next_id = res.next;
+            if (res.data.length > 0)
+                data.push(...res.data);
+            if (!next_id) break;
+        }
+        _save_to_database(data);
+    };
+
+    const upc_crawler = async (account) => {
+        let next_id = undefined;
+        let data = [];
+        for (; ;) {
+            let res = await upccheck(account, next_id);
+            next_id = res.next;
+            if (data.length > 0 && res.data.length > 0 && data[data.length - 1].runner_id === res.data[0].runner_id) {
+                res.data.shift();
+            }
             if (res.data.length > 0)
                 data.push(...res.data);
             if (!next_id) break;
@@ -497,21 +604,6 @@ module.exports = function (accountArr, config) {
     };
 
     const hustoj_upc_login = () => {
-        // agent.get(`http://exam.upc.edu.cn/csrf.php`).set(browser)
-        //     .end((err,response)=>{
-        //         const $ = cheerio.load(response.text);
-        //         agent.post(`http://exam.upc.edu.cn/login.php`).set(browser)
-        //             .send({
-        //                 user_id:'cup_sc01',
-        //                 password:'9fcb631dfbfb5deb9469b8c9f7b99d71',
-        //                 csrf:$('input').val()
-        //             }).end((err,response)=>{
-        //                 agent.get(`http://exam.upc.edu.cn/userinfo.php?user=cup_sc01`).set(browser)
-        //                     .end((err,response)=>{
-        //                         console.log(response.text);
-        //                     })
-        //         })
-        //     });
         if (!this.upcLogined) {
             const that = this;
             return new Promise((resolve, reject) => {
@@ -524,7 +616,7 @@ module.exports = function (accountArr, config) {
                                 password: '9fcb631dfbfb5deb9469b8c9f7b99d71',
                                 csrf: $('input').val()
                             }).end((err, response) => {
-                                that.upclogined = true;
+                            that.upclogined = true;
                             resolve();
                         })
                     })
@@ -539,7 +631,7 @@ module.exports = function (accountArr, config) {
 
     const hustoj_upc_crawler = (account) => {
         //  console.log(account);
-        hustoj_upc_login().then(()=>{
+        hustoj_upc_login().then(() => {
             pagent(upc.get("http://exam.upc.edu.cn/userinfo.php?user=" + account)).set(config['browser']).end(hustoj_upcAction)
         });
     };
@@ -590,7 +682,7 @@ module.exports = function (accountArr, config) {
         "codeforces": codeforces_crawler,
         "uva": uva_crawler,
         "vjudge": vjudge_crawler,
-        "hustoj-upc": hustoj_upc_crawler,
+        "hustoj-upc": upc_crawler,
         "upcvj": upcvj
     };
 

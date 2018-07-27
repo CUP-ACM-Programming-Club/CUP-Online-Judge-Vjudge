@@ -1,17 +1,16 @@
 const superagent = require('superagent');
 require('superagent-proxy')(superagent);
 const functional_module = require('./include/functional');
-const sleep_module = new functional_module();
 const log4js = require('./logger');
 const logger = log4js.logger('cheese', 'info');
 const query = require('./include/mysql_module');
 const eventEmitter = require("events").EventEmitter;
 log4js.connectLogger(logger, {level: 'info'});
-let account = require('./include/account');
 const updater = require('./include/userupdater');
 
-class Updater {
+class Updater extends eventEmitter {
     constructor(oj_name, runner_id, solution_id, pid, account) {
+        super();
         this.proxy = global.config.proxy;
         this.config = global.config;
         this.url = this.config.url[oj_name];
@@ -34,15 +33,13 @@ class Updater {
     };
 
     async record(rows) {
-        //let accpeted = (parseInt(rows[0]['accepted']) + 1) || 1;
         try {
             query(`update vjudge_problem set accepted =
 (select count(1) from vjudge_solution where vjudge_solution.problem_id= ?
 and oj_name = ? and result = 4),
   submit = (select count(1) from vjudge_solution where vjudge_solution.problem_id = ?
   and oj_name = ?)
-  where problem_id = ? and source = ?`,[this.pid,this.oj_name.toUpperCase(),this.pid,this.oj_name.toUpperCase(),this.pid,this.oj_name.toUpperCase()]);
-           // query("update vjudge_problem set accepted=? where problem_id=? and source=?", [accpeted, this.pid, this.oj_name.toUpperCase()]);
+  where problem_id = ? and source = ?`, [this.pid, this.oj_name.toUpperCase(), this.pid, this.oj_name.toUpperCase(), this.pid, this.oj_name.toUpperCase()]);
         }
         catch (e) {
             this.record(rows);
@@ -106,7 +103,7 @@ class UpdateManager {
     }
 
     static async precheck() {
-        await query("update vjudge_solution set result = 'empty',ustatus = 0 where (result=14 or result < 4)");
+        await query("update vjudge_solution set runner_id = 'empty',ustatus = 0 where (result=14 or result < 4)");
     }
 
     loop() {
@@ -114,10 +111,9 @@ class UpdateManager {
         (result < 4 or result = 14) and oj_name in ("HDU","POJ","UVA") and runner_id != 'empty' and ustatus = 0`)
             .then(rows => {
                 for (let i of rows) {
-                    //console.log(i);
                     const account = global.config.login[i.oj_name.toLowerCase()]
                         .find(_account => Object.values(_account).some(el => el === i.judger));
-                    query(`update vjudge_solution set ustatus = 1 where solution_id = ?`,[i.solution_id]);
+                    query(`update vjudge_solution set ustatus = 1 where solution_id = ?`, [i.solution_id]);
                     new Updater(i.oj_name, i.runner_id, i.solution_id, i.problem_id, account)
                 }
             })
