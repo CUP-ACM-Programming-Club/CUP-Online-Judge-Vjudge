@@ -14,10 +14,10 @@ let upc = superagent.agent();
 
 function checkInteger(integer) {
     if (isNaN(integer)) {
-        return 0;
+        return -1;
     }
     else {
-        return integer;
+        return parseInt(integer);
     }
 }
 
@@ -176,7 +176,6 @@ module.exports = function (accountArr, config) {
                             row.push(_data);
                         }
                         if (len < 20) {
-                            console.log(next_id);
                             next_id = false;
                         }
                         resolve({
@@ -347,14 +346,14 @@ module.exports = function (accountArr, config) {
     const _save_to_database = async (data) => {
         const user_id = accountArr["user_id"];
         for (let row of data) {
-            await query(`delete from vjudge_record where user_id = ? and problem_id = ? and result = 4 and oj_name = ?
-            and code_length = 0 and memory = 0`,
+            await query(`delete from vjudge_record where user_id = ? and (problem_id = ? and oj_name = ? and result = 4
+            and (code_length = 0 and memory = 0 or language = '-1'))`,
                 [user_id, row.problem_id, row.oj_name]);
             await query(`insert into vjudge_record (user_id,oj_name,problem_id,time,result,time_running,memory,code_length,language) 
             select ?, ?, ?,?,?,?,?,?,? from dual where not exists (select * from vjudge_record
             where vjudge_record.problem_id = ? and vjudge_record.oj_name = ? and user_id = ? and time = ? )
             `, [user_id, row.oj_name, row.problem_id, row.submit_time, row.result, checkInteger(row.time), checkInteger(row.memory),
-                checkInteger(row.code_length), checkInteger(row.language), row.problem_id
+                checkInteger(row.code_length), row.language, row.problem_id
                 , row.oj_name, user_id, row.submit_time])
         }
     };
