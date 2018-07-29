@@ -346,8 +346,8 @@ module.exports = function (accountArr, config) {
     const _save_to_database = async (data) => {
         const user_id = accountArr["user_id"];
         for (let row of data) {
-            await query(`delete from vjudge_record where user_id = ? and (problem_id = ? and oj_name = ? and result = 4
-            and (code_length = 0 and memory = 0 or language = '-1'))`,
+            await query(`delete from vjudge_record where user_id = ? and (problem_id = ? and oj_name = ?
+            and ((code_length = 0  and result = 4 and memory = 0) or code_length = -1))`,
                 [user_id, row.problem_id, row.oj_name]);
             await query(`insert into vjudge_record (user_id,oj_name,problem_id,time,result,time_running,memory,code_length,language) 
             select ?, ?, ?,?,?,?,?,?,? from dual where not exists (select * from vjudge_record
