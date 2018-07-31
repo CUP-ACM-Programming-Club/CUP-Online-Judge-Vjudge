@@ -501,6 +501,18 @@ module.exports = function (accountArr, config) {
     };
 
     const codeforcesAction = async function (err, response) {
+        const convertStatus = function(str) {
+            const statusArr = ["wait","wait","compiling","run","ok","present","wrong","time_limit",
+            "memory_limit","output_limit","runtime","compilation"];
+            const len = statusArr.length;
+            for(let i = 0;i<len;++i) {
+                str = str.toLowerCase();
+                if(str.match(statusArr[i])) {
+                    return i;
+                }
+            }
+            return 10;
+        };
         if (err || !response.ok) {
             console.log("CodeForceAction:Some error occured in response.");
         }
@@ -510,22 +522,36 @@ module.exports = function (accountArr, config) {
             }
             const json = JSON.parse(response.text)['result'];
             let arr = [];
-            for (let i in json) {
-                if (json[i]['verdict'] === 'OK') {
-                    let problem_id = json[i]['problem'];
-                    problem_id = problem_id['contestId'] + problem_id['index'];
-                    arr.push(problem_id);
-                }
+            for (let i of json) {
+                let _data = {
+                    runner_id: 0,
+                    submit_time: null,
+                    result: null,
+                    problem_id: null,
+                    time: null,
+                    memory: null,
+                    code_length: 0,
+                    language: null,
+                    oj_name: "CODEFORCES"
+                };
+                _data.result = convertStatus(i.verdict);
+                _data.memory = i.memoryConsumedBytes / 1024;
+                _data.time = i.timeConsumedMillis;
+                _data.language = i.programmingLanguage;
+                _data.problem_id = i.problem.contestId + i.problem.index;
+                _data.submit_time = dayjs(i.creationTimeSeconds * 1000).format("YYYY-MM-DD HH:mm:ss");
+                _data.runner_id = i.id;
+                arr.push(_data);
             }
-            save_to_database('CODEFORCES', arr);
+            _save_to_database(arr);
         }
     };
 
     const codeforces_crawler = (account) => {
         if (proxy.length > 4)
-            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=1000").set(config['browser']).proxy(proxy).end(codeforcesAction);
+            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=100000").set(config['browser']).proxy(proxy).end(codeforcesAction);
         else
-            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=1000").set(config['browser']).end(codeforcesAction);
+            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=100000").set(config['browser']).end(codeforcesAction);
     };
 
     const uvaAction = async function (err, response) {
