@@ -345,16 +345,74 @@ module.exports = function (accountArr, config) {
 
     const _save_to_database = async (data) => {
         const user_id = accountArr["user_id"];
+        if (!data || !data.length) {
+            return;
+        }
+        let original_data;
+        try {
+            original_data = await query(`select * from vjudge_record`);
+        }
+        catch (e) {
+            console.log(`original data error`);
+            console.log([user_id, data[0].oj_name]);
+            return;
+        }
+        let updateArr = [];
+        let insertArr = [];
         for (let row of data) {
-            await query(`delete from vjudge_record where user_id = ? and (problem_id = ? and oj_name = ?
-            and ((code_length = 0  and result = 4 and memory = 0) or code_length = -1 or result < 4))`,
-                [user_id, row.problem_id, row.oj_name]);
-            await query(`insert into vjudge_record (user_id,oj_name,problem_id,time,result,time_running,memory,code_length,language) 
-            select ?, ?, ?,?,?,?,?,?,? from dual where not exists (select * from vjudge_record
-            where vjudge_record.problem_id = ? and vjudge_record.oj_name = ? and user_id = ? and time = ? )
-            `, [user_id, row.oj_name, row.problem_id, row.submit_time, row.result, checkInteger(row.time), checkInteger(row.memory),
-                checkInteger(row.code_length), row.language, row.problem_id
-                , row.oj_name, user_id, row.submit_time])
+            const length = original_data.length;
+            let not_insert = false;
+            for (let i = 0; i < length; ++i) {
+                if (dayjs(new Date(original_data[i].time)).isSame(dayjs(row.submit_time))
+                    && original_data[i].user_id === user_id
+                    && original_data[i].oj_name.toUpperCase() === row.oj_name.toUpperCase()) {
+                    not_insert = true;
+                    const prev = original_data[i];
+                    const next = row;
+                    if (checkInteger(prev.code_length) !== checkInteger(next.code_length)
+                        || checkInteger(prev.time_running) !== checkInteger(next.time)
+                        || checkInteger(prev.memory) !== checkInteger(next.memory)
+                        || prev.result != next.result) {
+                        updateArr.push(next);
+                    }
+                    break;
+                }
+            }
+            if(!not_insert) {
+                insertArr.push(row);
+            }
+        }
+        let errorArr;
+        try {
+            for (let row of updateArr) {
+                errorArr = [checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length)
+                    , row.result, user_id, row.problem_id
+                    , row.submit_time];
+                await query(`update vjudge_record set time_running = ?,memory = ?,code_length = ?,result = ?
+            where user_id = ? and problem_id = ? and time = ?`,
+                    [checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length)
+                        , row.result, user_id, row.problem_id
+                    , row.submit_time])
+            }
+        }
+        catch (e) {
+            console.log(`errro in updateArr`);
+            console.log(errorArr);
+        }
+        try {
+            for (let row of insertArr) {
+                errorArr = [user_id, row.oj_name, row.problem_id, row.submit_time,
+                    row.result, checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length),
+                    row.language];
+                await query(`insert into vjudge_record (user_id,oj_name,problem_id,time,result,time_running,memory,code_length,language)
+            values(?,?,?,?,?,?,?,?,?)`, [user_id, row.oj_name, row.problem_id, row.submit_time,
+                    row.result, checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length),
+                    row.language])
+            }
+        }
+        catch (e) {
+            console.log(`errro in insertArr`);
+            console.log(errorArr);
         }
     };
 

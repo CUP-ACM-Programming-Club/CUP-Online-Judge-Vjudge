@@ -1,6 +1,6 @@
 {
   "name": "CUP_Online_Judge_Vjudge",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "CUP Online Judge vjudge module",
   "main": "daemon.js",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
-    "dayjs": "^1.6.10",
+    "dayjs": "^1.7.4",
     "iconv-lite": "^0.4.23",
     "log4js": "^2.10.0",
     "md5": "^2.2.1",
