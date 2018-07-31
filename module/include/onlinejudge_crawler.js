@@ -502,7 +502,7 @@ module.exports = function (accountArr, config) {
 
     const codeforcesAction = async function (err, response) {
         const convertStatus = function(str) {
-            const statusArr = ["wait","wait","compiling","run","ok","present","wrong","time_limit",
+            const statusArr = ["wait","wait","compiling","running","ok","present","wrong","time_limit",
             "memory_limit","output_limit","runtime","compilation"];
             const len = statusArr.length;
             for(let i = 0;i<len;++i) {
