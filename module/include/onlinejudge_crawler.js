@@ -372,7 +372,7 @@ module.exports = function (accountArr, config) {
                     if (checkInteger(prev.code_length) !== checkInteger(next.code_length)
                         || checkInteger(prev.time_running) !== checkInteger(next.time)
                         || checkInteger(prev.memory) !== checkInteger(next.memory)
-                        || prev.result != next.result) {
+                        || checkInteger(prev.result) !== checkInteger(next.result)) {
                         updateArr.push(next);
                     }
                     break;
