@@ -345,16 +345,74 @@ module.exports = function (accountArr, config) {
 
     const _save_to_database = async (data) => {
         const user_id = accountArr["user_id"];
+        if (!data || !data.length) {
+            return;
+        }
+        let original_data;
+        try {
+            original_data = await query(`select * from vjudge_record`);
+        }
+        catch (e) {
+            console.log(`original data error`);
+            console.log([user_id, data[0].oj_name]);
+            return;
+        }
+        let updateArr = [];
+        let insertArr = [];
         for (let row of data) {
-            await query(`delete from vjudge_record where user_id = ? and (problem_id = ? and oj_name = ? and result = 4
-            and (code_length = 0 and memory = 0 or language = '-1'))`,
-                [user_id, row.problem_id, row.oj_name]);
-            await query(`insert into vjudge_record (user_id,oj_name,problem_id,time,result,time_running,memory,code_length,language) 
-            select ?, ?, ?,?,?,?,?,?,? from dual where not exists (select * from vjudge_record
-            where vjudge_record.problem_id = ? and vjudge_record.oj_name = ? and user_id = ? and time = ? )
-            `, [user_id, row.oj_name, row.problem_id, row.submit_time, row.result, checkInteger(row.time), checkInteger(row.memory),
-                checkInteger(row.code_length), row.language, row.problem_id
-                , row.oj_name, user_id, row.submit_time])
+            const length = original_data.length;
+            let not_insert = false;
+            for (let i = 0; i < length; ++i) {
+                if (dayjs(new Date(original_data[i].time)).isSame(dayjs(row.submit_time))
+                    && original_data[i].user_id === user_id
+                    && original_data[i].oj_name.toUpperCase() === row.oj_name.toUpperCase()) {
+                    not_insert = true;
+                    const prev = original_data[i];
+                    const next = row;
+                    if (checkInteger(prev.code_length) !== checkInteger(next.code_length)
+                        || checkInteger(prev.time_running) !== checkInteger(next.time)
+                        || checkInteger(prev.memory) !== checkInteger(next.memory)
+                        || checkInteger(prev.result) !== checkInteger(next.result)) {
+                        updateArr.push(next);
+                    }
+                    break;
+                }
+            }
+            if(!not_insert) {
+                insertArr.push(row);
+            }
+        }
+        let errorArr;
+        try {
+            for (let row of updateArr) {
+                errorArr = [checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length)
+                    , row.result, user_id, row.problem_id
+                    , row.submit_time];
+                await query(`update vjudge_record set time_running = ?,memory = ?,code_length = ?,result = ?
+            where user_id = ? and problem_id = ? and time = ?`,
+                    [checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length)
+                        , row.result, user_id, row.problem_id
+                    , row.submit_time])
+            }
+        }
+        catch (e) {
+            console.log(`errro in updateArr`);
+            console.log(errorArr);
+        }
+        try {
+            for (let row of insertArr) {
+                errorArr = [user_id, row.oj_name, row.problem_id, row.submit_time,
+                    row.result, checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length),
+                    row.language];
+                await query(`insert into vjudge_record (user_id,oj_name,problem_id,time,result,time_running,memory,code_length,language)
+            values(?,?,?,?,?,?,?,?,?)`, [user_id, row.oj_name, row.problem_id, row.submit_time,
+                    row.result, checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length),
+                    row.language])
+            }
+        }
+        catch (e) {
+            console.log(`errro in insertArr`);
+            console.log(errorArr);
         }
     };
 
@@ -443,6 +501,18 @@ module.exports = function (accountArr, config) {
     };
 
     const codeforcesAction = async function (err, response) {
+        const convertStatus = function(str) {
+            const statusArr = ["wait","wait","compiling","running","ok","present","wrong","time_limit",
+            "memory_limit","output_limit","runtime","compilation"];
+            const len = statusArr.length;
+            for(let i = 0;i<len;++i) {
+                str = str.toLowerCase();
+                if(str.match(statusArr[i])) {
+                    return i;
+                }
+            }
+            return 10;
+        };
         if (err || !response.ok) {
             console.log("CodeForceAction:Some error occured in response.");
         }
@@ -452,22 +522,36 @@ module.exports = function (accountArr, config) {
             }
             const json = JSON.parse(response.text)['result'];
             let arr = [];
-            for (let i in json) {
-                if (json[i]['verdict'] === 'OK') {
-                    let problem_id = json[i]['problem'];
-                    problem_id = problem_id['contestId'] + problem_id['index'];
-                    arr.push(problem_id);
-                }
+            for (let i of json) {
+                let _data = {
+                    runner_id: 0,
+                    submit_time: null,
+                    result: null,
+                    problem_id: null,
+                    time: null,
+                    memory: null,
+                    code_length: 0,
+                    language: null,
+                    oj_name: "CODEFORCES"
+                };
+                _data.result = convertStatus(i.verdict);
+                _data.memory = i.memoryConsumedBytes / 1024;
+                _data.time = i.timeConsumedMillis;
+                _data.language = i.programmingLanguage;
+                _data.problem_id = i.problem.contestId + i.problem.index;
+                _data.submit_time = dayjs(i.creationTimeSeconds * 1000).format("YYYY-MM-DD HH:mm:ss");
+                _data.runner_id = i.id;
+                arr.push(_data);
             }
-            save_to_database('CODEFORCES', arr);
+            _save_to_database(arr);
         }
     };
 
     const codeforces_crawler = (account) => {
         if (proxy.length > 4)
-            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=1000").set(config['browser']).proxy(proxy).end(codeforcesAction);
+            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=100000").set(config['browser']).proxy(proxy).end(codeforcesAction);
         else
-            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=1000").set(config['browser']).end(codeforcesAction);
+            superagent.get("http://codeforces.com/api/user.status?handle=" + account + "&from=1&count=100000").set(config['browser']).end(codeforcesAction);
     };
 
     const uvaAction = async function (err, response) {
