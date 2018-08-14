@@ -22,7 +22,7 @@ function checkInteger(integer) {
 }
 
 module.exports = function (accountArr, config) {
-    if (typeof config['proxy'] !== 'undefined' && typeof  config['proxy'] !== null)
+    if (typeof config['proxy'] === "string")
         proxy = config['proxy'];
     const browser = config['browser'];
 
@@ -214,7 +214,7 @@ module.exports = function (accountArr, config) {
         return new Promise((resolve) => {
             pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`)).set(browser)
                 .end((err, response) => {
-                    if (!response.text || err) {
+                    if (err || !response.text) {
                         return;
                     }
                     if (!check_json(response.text)) {
@@ -330,8 +330,8 @@ module.exports = function (accountArr, config) {
         query("SELECT * FROM vjudge_record WHERE user_id=? and oj_name=?", [accountArr['user_id'], oj_name])
             .then(async (rows) => {
                 let list = [];
-                for (let i in rows) {
-                    list[rows[i].problem_id] = 1;
+                for (let i of rows) {
+                    list[i.problem_id] = 1;
                 }
                 for (let i in arr) {
                     if (typeof arr[i] !== "undefined" && arr[i].toString().length > 0 && (typeof list === 'undefined' || typeof list[arr[i]] === 'undefined')) {
@@ -372,13 +372,14 @@ module.exports = function (accountArr, config) {
                     if (checkInteger(prev.code_length) !== checkInteger(next.code_length)
                         || checkInteger(prev.time_running) !== checkInteger(next.time)
                         || checkInteger(prev.memory) !== checkInteger(next.memory)
-                        || checkInteger(prev.result) !== checkInteger(next.result)) {
+                        || checkInteger(prev.result) !== checkInteger(next.result)
+                        || prev.language !== next.language) {
                         updateArr.push(next);
                     }
                     break;
                 }
             }
-            if(!not_insert) {
+            if (!not_insert) {
                 insertArr.push(row);
             }
         }
@@ -392,7 +393,7 @@ module.exports = function (accountArr, config) {
             where user_id = ? and problem_id = ? and time = ?`,
                     [checkInteger(row.time), checkInteger(row.memory), checkInteger(row.code_length)
                         , row.result, user_id, row.problem_id
-                    , row.submit_time])
+                        , row.submit_time])
             }
         }
         catch (e) {
@@ -416,27 +417,8 @@ module.exports = function (accountArr, config) {
         }
     };
 
-    const hduAction = async function (err, response) {
-        if (err || !response.ok) {
-            console.log("HDUAction:Some error occured in response.");
-        }
-        else {
-            const $ = cheerio.load(response.text);
-            let arr = $('table').find('table').eq(2).find('script').eq(0).html().split(';');
-            for (let i in arr) {
-                arr[i] = arr[i].substring(arr[i].indexOf('(') + 1, arr[i].indexOf(','));
-            }
-            save_to_database('HDU', arr);
-        }
-    };
 
     const hdu_crawler = async (account) => {
-        /*
-        if (proxy.length > 4)
-            superagent.get("http://acm.hdu.edu.cn/userstatus.php?user=" + account).proxy(proxy).set(config['browser']).end(hduAction);
-        else
-            superagent.get("http://acm.hdu.edu.cn/userstatus.php?user=" + account).set(config['browser']).end(hduAction);
-        */
         let next_id = undefined;
         let data = [];
         for (; ;) {
@@ -449,29 +431,8 @@ module.exports = function (accountArr, config) {
         _save_to_database(data);
     };
 
-    const pojAction = async function (err, response) {
-        if (err || !response.ok) {
-            console.log("POJAction:Some error occured in response.");
-        }
-        else {
-            const $ = cheerio.load(response.text);
-            let js = $("script");
-            js = js.eq(1).html();
-            js = js.substring(js.indexOf('}') + 1, js.length).split('\n');
-            for (let i in js) {
-                js[i] = js[i].substring(js[i].indexOf('(') + 1, js[i].indexOf(')'));
-            }
-            save_to_database('POJ', js);
-        }
-    };
 
     const poj_crawler = async (account) => {
-        /*
-        if (proxy.length > 4)
-            superagent.get("http://poj.org/userstatus?user_id=" + account).proxy(proxy).set(config['browser']).end(pojAction);
-        else
-            superagent.get("http://poj.org/userstatus?user_id=" + account).set(config['browser']).end(pojAction);
-        */
         let next_id = undefined;
         let data = [];
         for (; ;) {
@@ -501,13 +462,16 @@ module.exports = function (accountArr, config) {
     };
 
     const codeforcesAction = async function (err, response) {
-        const convertStatus = function(str) {
-            const statusArr = ["wait","wait","compiling","running","ok","present","wrong","time_limit",
-            "memory_limit","output_limit","runtime","compilation"];
+        const convertStatus = function (str) {
+            const statusArr = ["wait", "wait", "compiling", "running", "ok", "present", "wrong", "time_limit",
+                "memory_limit", "output_limit", "runtime", "compilation"];
             const len = statusArr.length;
-            for(let i = 0;i<len;++i) {
+            for (let i = 0; i < len; ++i) {
+                if (!str || !str.toLowerCase()) {
+                    throw new Error("convertStatus str not valid string");
+                }
                 str = str.toLowerCase();
-                if(str.match(statusArr[i])) {
+                if (str.match(statusArr[i])) {
                     return i;
                 }
             }
@@ -517,33 +481,39 @@ module.exports = function (accountArr, config) {
             console.log("CodeForceAction:Some error occured in response.");
         }
         else {
-            if (!check_json(response.text)) {
-                return;
+            try {
+                if (!check_json(response.text)) {
+                    return;
+                }
+                const json = JSON.parse(response.text)['result'];
+                let arr = [];
+                for (let i of json) {
+                    let _data = {
+                        runner_id: 0,
+                        submit_time: null,
+                        result: null,
+                        problem_id: null,
+                        time: null,
+                        memory: null,
+                        code_length: 0,
+                        language: null,
+                        oj_name: "CODEFORCES"
+                    };
+                    _data.result = convertStatus(i.verdict);
+                    _data.memory = i.memoryConsumedBytes / 1024;
+                    _data.time = i.timeConsumedMillis;
+                    _data.language = i.programmingLanguage;
+                    _data.problem_id = i.problem.contestId + i.problem.index;
+                    _data.submit_time = dayjs(i.creationTimeSeconds * 1000).format("YYYY-MM-DD HH:mm:ss");
+                    _data.runner_id = i.id;
+                    arr.push(_data);
+                }
+                _save_to_database(arr);
             }
-            const json = JSON.parse(response.text)['result'];
-            let arr = [];
-            for (let i of json) {
-                let _data = {
-                    runner_id: 0,
-                    submit_time: null,
-                    result: null,
-                    problem_id: null,
-                    time: null,
-                    memory: null,
-                    code_length: 0,
-                    language: null,
-                    oj_name: "CODEFORCES"
-                };
-                _data.result = convertStatus(i.verdict);
-                _data.memory = i.memoryConsumedBytes / 1024;
-                _data.time = i.timeConsumedMillis;
-                _data.language = i.programmingLanguage;
-                _data.problem_id = i.problem.contestId + i.problem.index;
-                _data.submit_time = dayjs(i.creationTimeSeconds * 1000).format("YYYY-MM-DD HH:mm:ss");
-                _data.runner_id = i.id;
-                arr.push(_data);
+            catch (e) {
+                console.log("Catch error");
+                console.log(e);
             }
-            _save_to_database(arr);
         }
     };
 
@@ -595,56 +565,8 @@ module.exports = function (accountArr, config) {
 
     };
 
-    const vjudgeAction = function (err, response) {
-        if (err || !response.ok) {
-            console.log("VjudgeAction:Some error occured in response.");
-        }
-        else {
-            if (!check_json(response.text)) {
-                return;
-            }
-            const json = (JSON.parse(response.text))['acRecords'];
-            const hdu = json['HDU'];
-            const poj = json['POJ'];
-            const codeforces_gym = json['Gym'];
-            const codeforces = json['CodeForces'];
-            const uva = json['UVA'];
-            const uvalive = json['UVALive'];
-            const fzu = json['FZU'];
-            const aizu = json['Aizu'];
-            const csu = json['CSU'];
-            const hysbz = json['HYSBZ'];
-            const spoj = json['SPOJ'];
-            const uestc = json['UESTC'];
-            const ural = json['URAL'];
-            const zoj = json['ZOJ'];
-            const kattis = json['Kattis'];
-            const atcoder = json['AtCoder'];
-            save_to_database('HDU', hdu);
-            save_to_database('POJ', poj);
-            save_to_database('CODEFORCES', codeforces);
-            save_to_database('CODEFORCES_GYM', codeforces_gym);
-            save_to_database('UVA', uva);
-            save_to_database('UVALive', uvalive);
-            save_to_database('FZU', fzu);
-            save_to_database('Aizu', aizu);
-            save_to_database('AtCoder', atcoder);
-            save_to_database('CSU', csu);
-            save_to_database('HYSBZ', hysbz);
-            save_to_database('SPOJ', spoj);
-            save_to_database('UESTC', uestc);
-            save_to_database('URAL', ural);
-            save_to_database('ZOJ', zoj);
-            save_to_database('Kattis', kattis);
-        }
-    };
 
     const vjudge_crawler = async (account) => {
-        /* if (proxy.length > 4)
-            superagent.get("https://vjudge.net/user/solveDetail/" + account).set(config['browser']).proxy(proxy).end(vjudgeAction);
-        else
-            superagent.get("https://vjudge.net/user/solveDetail/" + account).set(config['browser']).end(vjudgeAction);*/
-
         let us = {
             username: "cupvjudge",
             password: "2016011253"
@@ -666,30 +588,10 @@ module.exports = function (accountArr, config) {
         _save_to_database(data);
     };
 
-    const hustoj_upcAction = async function (err, response) {
-        if (err || !response.ok) {
-            console.log("HUSTOJ_UPCAction:Some error occured in response.");
-        }
-        else {
-            const $ = cheerio.load(response.text);
-            let plaintext = $("table").find('script').eq(0).html();
-            if (plaintext && plaintext.substring) {
-                plaintext = plaintext.substring(plaintext.indexOf('}\n') + 1, plaintext.length).split(';');
-                for (let i in plaintext) {
-                    plaintext[i] = plaintext[i].substring(plaintext[i].indexOf('(') + 1, plaintext[i].indexOf(')'));
-                    if (plaintext[i].indexOf(",") !== -1) {
-                        plaintext[i] = plaintext[i].substring(0, plaintext[i].indexOf(","));
-                    }
-                }
-                save_to_database('HUSTOJ_UPC', plaintext);
-            }
-        }
-    };
-
     const hustoj_upc_login = () => {
         if (!this.upcLogined) {
             const that = this;
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 pagent(upc.get(`http://exam.upc.edu.cn/csrf.php`)).set(config['browser'])
                     .end((err, response) => {
                         const $ = cheerio.load(response.text);
@@ -698,7 +600,7 @@ module.exports = function (accountArr, config) {
                                 user_id: 'cup_sc01',
                                 password: '9fcb631dfbfb5deb9469b8c9f7b99d71',
                                 csrf: $('input').val()
-                            }).end((err, response) => {
+                            }).end(() => {
                             that.upclogined = true;
                             resolve();
                         })
@@ -711,13 +613,6 @@ module.exports = function (accountArr, config) {
         }
     };
 
-
-    const hustoj_upc_crawler = (account) => {
-        //  console.log(account);
-        hustoj_upc_login().then(() => {
-            pagent(upc.get("http://exam.upc.edu.cn/userinfo.php?user=" + account)).set(config['browser']).end(hustoj_upcAction)
-        });
-    };
 
     const upcvjAction = function (err, response) {
         if (err || !response.ok || !response.text) {
@@ -737,11 +632,13 @@ module.exports = function (accountArr, config) {
             let hducnt = 0;
             let poj = [];
             let pojcnt = 0;
-            for (let i in json) {
-                if (json[i][11] === 'HDU')
-                    hdu[hducnt++] = json[i][12];
-                else if (json[i][11] === 'POJ')
-                    poj[pojcnt++] = json[i][12];
+            for (let i of json) {
+                if (i[11] === 'HDU') {
+                    hdu.push(i[12]);
+                }
+                else if (i[11] === 'POJ') {
+                    poj.push(i[12]);
+                }
             }
             save_to_database('HDU', hdu);
             save_to_database('POJ', poj);
@@ -775,8 +672,8 @@ module.exports = function (accountArr, config) {
             return;
         }
         const res = JSON.parse(response.text);
-        for (let i in res) {
-            uva[res[i][0]] = res[i][1];
+        for (let i of res) {
+            uva[i[0]] = i[1];
         }
     };
 
