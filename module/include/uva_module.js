@@ -47,7 +47,6 @@ exports.formatAccount = function (account) {
 exports.validSubmit = function (response) {
     //console.log(response);
     const redirects = response.redirects;
-  //  console.log(redirects);
     if (Boolean(redirects && redirects.length > 0 && redirects[0].indexOf("received") !== -1)) {
        // console.log(parseInt(redirects[0].substring(redirects[0].lastIndexOf("+") + 1, redirects[0].length)));
         return parseInt(redirects[0].substring(redirects[0].lastIndexOf("+") + 1, redirects[0].length));
