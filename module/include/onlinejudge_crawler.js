@@ -211,46 +211,53 @@ module.exports = function (accountArr, config) {
             }
         }
 
-        return new Promise((resolve) => {
-            pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`)).set(browser)
-                .end((err, response) => {
-                    if (err || !response.text) {
-                        return;
-                    }
-                    if (!check_json(response.text)) {
-                        return;
-                    }
-                    const data = JSON.parse(response.text).data;
-                    let row = [];
-                    let next_id;
-                    for (let i of data) {
-                        let _data = {
-                            runner_id: 0,
-                            submit_time: null,
-                            result: null,
-                            problem_id: null,
-                            time: null,
-                            memory: null,
-                            code_length: null,
-                            language: null
-                        };
-                        _data.runner_id = i[1];
-                        _data.submit_time = dayjs(i[9]).format("YYYY-MM-DD HH:mm:ss");
-                        _data.result = parseResult(i[4]);
-                        _data.problem_id = i[3];
-                        _data.oj_name = i[2];
-                        _data.time = i[5];
-                        _data.memory = i[6];
-                        _data.code_length = i[8];
-                        _data.language = i[7];
-                        next_id = parseInt(i[0]);
-                        row.push(_data);
-                    }
-                    resolve({
-                        data: row,
-                        next: typeof next_id === "number" ? next_id - 1 : Boolean(next_id)
-                    });
-                })
+        return new Promise((resolve,reject) => {
+            try {
+                pagent(agent.get(`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`)).set(browser)
+                    .end((err, response) => {
+                        if (err || !response.text) {
+                            return;
+                        }
+                        if (!check_json(response.text)) {
+                            return;
+                        }
+                        const data = JSON.parse(response.text).data;
+                        let row = [];
+                        let next_id;
+                        for (let i of data) {
+                            let _data = {
+                                runner_id: 0,
+                                submit_time: null,
+                                result: null,
+                                problem_id: null,
+                                time: null,
+                                memory: null,
+                                code_length: null,
+                                language: null
+                            };
+                            _data.runner_id = i[1];
+                            _data.submit_time = dayjs(i[9]).format("YYYY-MM-DD HH:mm:ss");
+                            _data.result = parseResult(i[4]);
+                            _data.problem_id = i[3];
+                            _data.oj_name = i[2];
+                            _data.time = i[5];
+                            _data.memory = i[6];
+                            _data.code_length = i[8];
+                            _data.language = i[7];
+                            next_id = parseInt(i[0]);
+                            row.push(_data);
+                        }
+                        resolve({
+                            data: row,
+                            next: typeof next_id === "number" ? next_id - 1 : Boolean(next_id)
+                        });
+                    })
+            }
+            catch (e) {
+                console.log(e);
+                console.log(`url:${`https://vjudge.net/user/submissions?username=${user}&pageSize=500${id ? `&maxId=${id}` : ""}`}`);
+                reject(e);
+            }
         })
     }
 
