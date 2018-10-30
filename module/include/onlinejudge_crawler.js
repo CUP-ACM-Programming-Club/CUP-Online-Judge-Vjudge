@@ -357,7 +357,7 @@ module.exports = function (accountArr, config) {
         }
         let original_data;
         try {
-            original_data = await query(`select * from vjudge_record where user_id = ? limit 1000`,[user_id]);
+            original_data = await query(`select * from vjudge_record where user_id = ?`,[user_id]);
         }
         catch (e) {
             console.log(`original data error`);
