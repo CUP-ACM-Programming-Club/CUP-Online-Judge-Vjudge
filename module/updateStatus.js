@@ -48,7 +48,7 @@ and oj_name = ? and result = 4),
 
     async connect(err, response) {
         if (err) {
-            logger.fatal(err);
+            console.log(err);
         }
         try {
             const sqlArr = this.ojmodule.format(response, this.sid, this.runner_id);
@@ -57,9 +57,9 @@ and oj_name = ? and result = 4),
             query("update vjudge_solution set runner_id=?,result=?,time=?,memory=? where solution_id=?", sqlArr)
                 .then(resolve => {
                 }).catch(err => {
-                logger.fatal("error:\nsqlArr");
-                logger.fatal(sqlArr);
-                logger.fatal(err)
+                console.log("error:\nsqlArr");
+                console.log(sqlArr);
+                console.log(err)
             });
             if (status > 3) {
                 updater(this.sid);
@@ -68,8 +68,8 @@ and oj_name = ? and result = 4),
                         .then((rows) => {
                             this.record(rows);
                         }).catch((err) => {
-                        logger.fatal("ERROR:select\n");
-                        logger.fatal(err);
+                        console.log("ERROR:select\n");
+                        console.log(err);
                         this.error();
                     });
                 }
@@ -79,7 +79,7 @@ and oj_name = ? and result = 4),
             }
         }
         catch (e) {
-            logger.fatal(e);
+            console.log(e);
             this.error();
         }
     };
