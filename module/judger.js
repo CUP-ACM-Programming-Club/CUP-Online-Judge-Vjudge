@@ -1,10 +1,12 @@
 const superagent = require('superagent');
 require('superagent-proxy')(superagent);
+require('superagent-charset')(superagent);
 const functional_module = require('./include/functional');
 const sleep_module = new functional_module();
 const log4js = require('./logger');
 const logger = log4js.logger('cheese', 'info');
 const query = require('./include/mysql_module');
+const iconv = require("iconv-lite");
 const eventEmitter = require("events").EventEmitter;
 log4js.connectLogger(logger, {level: 'info'});
 let account = require('./include/account');
@@ -124,6 +126,7 @@ class Judger extends eventEmitter {
         this.updateTimeout();
         const postmsg = this.ojmodule.post_format(pid, lang, code);
         this.proxy_check(this.agent.post(this.url.post_url))
+            .set({encoding: null})
             .send(postmsg)
             .end((err, response) => {
                 let runner_id = this.ojmodule.validSubmit(response);
@@ -229,6 +232,7 @@ class Judger extends eventEmitter {
         this.pid = solution.pid;
         this.sid = solution.sid;
         this.code = solution.code;
+        console.log("code", this.code);
         this.language = solution.language;
         this.finished = false;
         //console.log(solution);

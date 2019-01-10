@@ -1,4 +1,5 @@
 const cheerio = require('cheerio');
+const { encodeGBK, decodeGBK } = require('gbk-string');
 const log = console.log;
 const problem_status = {
     "Pending": 0,
@@ -32,12 +33,7 @@ exports.format = function (response, sid, runner_id = null) {
 };
 
 exports.post_format = function (pid, lang, code) {
-    return {
-        check: "0",
-        problemid: pid,
-        language: lang,
-        usercode: code
-    };
+    return `check=0&problemid=${pid}&language=${lang}&usercode=${encodeGBK(code).replace(/%A/g, "%0A")}`;
 };
 
 exports.updateurl = function (pid, username,sid = "") {
