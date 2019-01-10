@@ -1,6 +1,6 @@
 {
   "name": "CUP_Online_Judge_Vjudge",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "description": "CUP Online Judge vjudge module",
   "main": "daemon.js",
   "scripts": {
@@ -16,7 +16,6 @@
     "iconv-lite": "^0.4.23",
     "log4js": "^3.0.6",
     "md5": "^2.2.1",
-    "gbk-string": "^0.1.0",
     "mysql2": "^1.5.3",
     "pm2": "^2.10.4",
     "superagent": "^4.0.0-alpha.1",
