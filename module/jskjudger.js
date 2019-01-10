@@ -230,10 +230,13 @@ and oj_name = ? and result = 4),
         this.ticktack("loginaction");
         if (err) {
             logger.fatal(err);
+            console.log(err);
         }
-        if (response.text.indexOf("我的主页") === -1) {
+        if (response.text.indexOf("我的主页") === -1 && response.text.indexOf("success") === -1) {
             this.error();
+            console.log(`${this.oj_name} Judger login failed`);
             logger.fatal(`${this.oj_name} Judger login failed`);
+            console.log(response.text);
             return;
         }
         try {
@@ -241,6 +244,7 @@ and oj_name = ? and result = 4),
         }
         catch (e) {
             logger.fatal(e);
+            console.log(e);
             this.error();
         }
     }
