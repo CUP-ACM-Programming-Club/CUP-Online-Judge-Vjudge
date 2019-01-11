@@ -18,6 +18,7 @@ class Judger extends eventEmitter {
         this.proxy = proxy;
         this.account = account;
         this.config = config;
+        this.last_logined = 0;
         this.url = config['url'][oj_name];
         this.oj_name = oj_name;
         this.cookie = "";
@@ -26,6 +27,7 @@ class Judger extends eventEmitter {
         this.agent = superagent.agent();
         logger.info(`constructed Judger`);
     }
+
 
     proxy_check(agent_module, cookie = "") {
         agent_module = agent_module.set(this.config.browser);
@@ -129,6 +131,7 @@ class Judger extends eventEmitter {
             .set({encoding: null})
             .send(postmsg)
             .end((err, response) => {
+                console.log("submitted");
                 let runner_id = this.ojmodule.validSubmit(response);
                 if (runner_id) {
                     if (typeof runner_id === "number") {
@@ -149,6 +152,8 @@ class Judger extends eventEmitter {
             logger.fatal(err);
         }
         try {
+            console.log("logined");
+            this.last_logined = new Date();
             this.submitAnswer(this.pid, this.language, this.code);
         }
         catch (e) {
@@ -198,6 +203,10 @@ class Judger extends eventEmitter {
                 }
             }, 1000 * 60 * 2);
         }
+        if(this.check_login()) {
+            this.submitAnswer(this.pid, this.language, this.code);
+            return;
+        }
         this.account["B1"] = "login";
         this.proxy_check(superagent.post(this.url.login_url), cookie)
             .send(this.account)
@@ -228,11 +237,15 @@ class Judger extends eventEmitter {
         return valid;
     }
 
+    check_login() {
+        let now = new Date();
+        return now - this.last_logined <= 15 * 60 * 1000;
+    }
+
     run(solution) {
         this.pid = solution.pid;
         this.sid = solution.sid;
         this.code = solution.code;
-        console.log("code", this.code);
         this.language = solution.language;
         this.finished = false;
         //console.log(solution);

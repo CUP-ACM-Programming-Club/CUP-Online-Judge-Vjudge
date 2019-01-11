@@ -1,6 +1,7 @@
 const cheerio = require('cheerio');
 
 const problem_status = {
+    0: 0,
     10: 10,
     15: 10,
     20: 0,

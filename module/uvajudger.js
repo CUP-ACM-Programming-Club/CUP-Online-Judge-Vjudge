@@ -56,6 +56,10 @@ class UVaJudger extends Judger {
 
 
     getCookie() {
+        if(this.check_login()) {
+            this.login();
+            return;
+        }
         this.proxy_check(superagent.get(this.url.url))
             .end((err, response) => {
                 //     if(err)console.log(err)
@@ -71,6 +75,7 @@ class UVaJudger extends Judger {
         this.sid = solution.sid;
         this.code = solution.code;
         this.language = solution.language;
+        this.finished = false;
         this.getCookie();
     }
 }

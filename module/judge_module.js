@@ -84,7 +84,7 @@ class Vjudge_daemon {
     buildJudger(_account) {
         let judger = new this.judger(this.config, _account, this.proxy, this.oj_name);
         judger.on("finish", () => {
-            account[this.oj_name].push(this.buildJudger(judger.getAccount()));
+            account[this.oj_name].push(judger);
             if (judger.setTimeout) {
                 clearTimeout(judger.setTimeout);
             }
