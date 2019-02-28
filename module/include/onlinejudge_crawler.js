@@ -140,7 +140,7 @@ module.exports = function (accountArr, config) {
 
         return new Promise((resolve) => {
             hustoj_upc_login().then(() => {
-                pagent(upc.get(`http://exam.upc.edu.cn/status.php?user_id=${user}${id ? `&top=${id}` : ""}`))
+                pagent(upc.get(`http://icpc.upc.edu.cn/status.php?user_id=${user}${id ? `&top=${id}` : ""}`))
                     .set(browser)
                     .end((err, response) => {
                         const $ = cheerio.load(response.text), data = $("#result-tab tr"),
@@ -670,7 +670,7 @@ module.exports = function (accountArr, config) {
         "uva": uva_crawler,
         "vjudge": vjudge_crawler,
         "hustoj-upc": upc_crawler,
-        "upcvj": upcvj
+        "upcvj": function(){}
     };
 
     const uAction = (err, response) => {
